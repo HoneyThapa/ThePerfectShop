@@ -49,6 +49,9 @@ class Purchase(Base):
     batch_id = Column(String)
     received_qty = Column(Integer)
     unit_cost = Column(Numeric)
+    __table_args__ = (
+        PrimaryKeyConstraint("received_date", "store_id", "sku_id", "batch_id"),
+    )
 
 
 class FeatureStoreSKU(Base):
