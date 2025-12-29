@@ -77,3 +77,17 @@ class BatchRisk(Base):
     __table_args__ = (
         PrimaryKeyConstraint("snapshot_date", "store_id", "sku_id", "batch_id"),
     )
+
+
+class StoreMaster(Base):
+    __tablename__ = "store_master"
+    store_id = Column(String, primary_key=True)
+    city = Column(String)
+    zone = Column(String)
+
+
+class SKUMaster(Base):
+    __tablename__ = "sku_master"
+    sku_id = Column(String, primary_key=True)
+    category = Column(String)
+    mrp = Column(Numeric)

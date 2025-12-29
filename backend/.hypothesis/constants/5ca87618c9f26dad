@@ -1,0 +1,4 @@
+# file: /Users/hanika/Desktop/Python/ThePerfectShop/ThePerfectShop/backend/app/services/validation.py
+# hypothesis_version: 6.148.8
+
+['all', 'coerce', 'column', 'date', 'duplicate_rows', 'error_type', 'errors', 'expiry_date', 'invalid_date_format', 'is_valid', 'line_numbers', 'message', 'missing', 'missing_column', 'missing_values', 'negative_values', 'on_hand_qty', 'received_date', 'snapshot_date', 'warnings']
