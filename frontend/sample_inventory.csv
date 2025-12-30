@@ -1,11 +1,11 @@
-store_id,sku_id,product_name,category,batch_id,expiry_date,on_hand_qty,unit_cost,avg_daily_sales
-S001,SKU101,Milk 1L,Dairy,B001,2025-01-05,120,42,8
-S001,SKU102,Curd 500g,Dairy,B002,2025-01-08,90,30,6
-S001,SKU103,Bread Loaf,Bakery,B003,2024-12-30,150,25,12
-S002,SKU101,Milk 1L,Dairy,B004,2025-01-06,60,42,10
-S002,SKU104,Butter 200g,Dairy,B005,2025-01-20,40,95,3
-S002,SKU105,Cheese Slice,Dairy,B006,2025-02-10,70,110,2
-S003,SKU106,Apple Juice,Beverage,B007,2025-03-01,80,60,4
-S003,SKU107,Orange Juice,Beverage,B008,2025-02-15,65,65,3
-S003,SKU108,Cookies Pack,Snacks,B009,2025-06-30,200,20,15
-S001,SKU109,Chips Pack,Snacks,B010,2025-04-12,180,18,14
+store_id,sku_id,batch_id,product_name,category,on_hand_qty,expiry_date,cost_per_unit,selling_price
+STORE001,SKU001,BATCH001,Fresh Apples,Fruits,50,2024-01-15,2.50,4.00
+STORE001,SKU002,BATCH002,Organic Bananas,Fruits,30,2024-01-10,1.80,3.20
+STORE001,SKU003,BATCH003,Whole Milk,Dairy,25,2024-01-08,3.20,5.50
+STORE001,SKU004,BATCH004,Greek Yogurt,Dairy,40,2024-01-12,4.50,7.00
+STORE001,SKU005,BATCH005,Fresh Bread,Bakery,20,2024-01-05,2.00,4.50
+STORE002,SKU001,BATCH006,Fresh Apples,Fruits,35,2024-01-18,2.50,4.00
+STORE002,SKU002,BATCH007,Organic Bananas,Fruits,45,2024-01-14,1.80,3.20
+STORE002,SKU006,BATCH008,Cheddar Cheese,Dairy,15,2024-01-20,6.00,9.50
+STORE002,SKU007,BATCH009,Salmon Fillet,Seafood,12,2024-01-06,12.00,18.00
+STORE002,SKU008,BATCH010,Chicken Breast,Meat,28,2024-01-11,8.50,13.00
