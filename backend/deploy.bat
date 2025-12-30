@@ -1,11 +1,11 @@
 @echo off
-REM ExpiryShield Backend Deployment Script for Windows
+REM ThePerfectShop Backend Deployment Script for Windows
 REM This script handles deployment for different environments
 
 setlocal enabledelayedexpansion
 
 REM Configuration
-set PROJECT_NAME=expiryshield
+set PROJECT_NAME=theperfectshop
 set ENVIRONMENT=%ENVIRONMENT%
 if "%ENVIRONMENT%"=="" set ENVIRONMENT=development
 set COMPOSE_FILE=docker-compose.yml
@@ -36,7 +36,7 @@ echo [ERROR] Unknown command: %1
 goto :show_help
 
 :show_help
-echo ExpiryShield Backend Deployment Script
+echo ThePerfectShop Backend Deployment Script
 echo.
 echo Usage: %0 [COMMAND]
 echo.
@@ -104,7 +104,7 @@ echo [SUCCESS] Docker images built successfully
 goto :eof
 
 :start_services
-echo [INFO] Starting ExpiryShield services...
+echo [INFO] Starting ThePerfectShop services...
 docker-compose -f %COMPOSE_FILE% up -d
 if errorlevel 1 (
     echo [ERROR] Failed to start services
@@ -115,7 +115,7 @@ call :show_status
 goto :eof
 
 :stop_services
-echo [INFO] Stopping ExpiryShield services...
+echo [INFO] Stopping ThePerfectShop services...
 docker-compose -f %COMPOSE_FILE% down
 if errorlevel 1 (
     echo [ERROR] Failed to stop services
@@ -125,7 +125,7 @@ echo [SUCCESS] Services stopped
 goto :eof
 
 :restart_services
-echo [INFO] Restarting ExpiryShield services...
+echo [INFO] Restarting ThePerfectShop services...
 docker-compose -f %COMPOSE_FILE% restart
 if errorlevel 1 (
     echo [ERROR] Failed to restart services
@@ -189,7 +189,7 @@ if errorlevel 1 (
 )
 
 REM Check database
-docker-compose -f %COMPOSE_FILE% exec -T postgres pg_isready -U expiryshield >nul 2>&1
+docker-compose -f %COMPOSE_FILE% exec -T postgres pg_isready -U theperfectshop >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Database is not responding
 ) else (
@@ -206,7 +206,7 @@ if errorlevel 1 (
 goto :eof
 
 :start_monitoring
-echo [INFO] Starting ExpiryShield with monitoring stack...
+echo [INFO] Starting ThePerfectShop with monitoring stack...
 docker-compose -f %COMPOSE_FILE% --profile monitoring up -d
 if errorlevel 1 (
     echo [ERROR] Failed to start services with monitoring
@@ -224,7 +224,7 @@ set "HH=%dt:~8,2%" & set "Min=%dt:~10,2%" & set "Sec=%dt:~12,2%"
 set "backup_file=backup_%YYYY%%MM%%DD%_%HH%%Min%%Sec%.sql"
 
 echo [INFO] Creating database backup: %backup_file%
-docker-compose -f %COMPOSE_FILE% exec -T postgres pg_dump -U expiryshield expiryshield > %backup_file%
+docker-compose -f %COMPOSE_FILE% exec -T postgres pg_dump -U theperfectshop theperfectshop > %backup_file%
 if errorlevel 1 (
     echo [ERROR] Failed to create database backup
     exit /b 1
