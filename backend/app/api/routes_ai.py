@@ -30,12 +30,14 @@ class ChatRequest(BaseModel):
     snapshot_date: Optional[date] = None
 
 class FeedbackRequest(BaseModel):
-    recommendation_id: str
-    action: str  # accepted, rejected, dismissed
+    recommendation_id: Optional[str] = "frontend_generated"
+    action: Optional[str] = None  # For backward compatibility
+    feedback_type: str  # "will_consider" or "reject"
     context_hash: str
     action_type: str
     action_parameters: Dict[str, Any]
     risk_score: float
+    user_notes: Optional[str] = None
 
 @router.post("/insights")
 async def get_ai_insights(request: InsightsRequest):
@@ -157,9 +159,9 @@ async def record_feedback(request: FeedbackRequest):
         
         try:
             feedback = RecommendationFeedback(
-                recommendation_id=request.recommendation_id,
+                recommendation_id=request.recommendation_id or "frontend_generated",
                 user_id="default",  # MVP: single user
-                action=request.action,
+                action=request.feedback_type,  # Use feedback_type as action
                 context_hash=request.context_hash,
                 action_type=request.action_type,
                 action_parameters=request.action_parameters,

@@ -360,6 +360,25 @@ def send_chat_message(message: str, store_id: str = None, sku_id: str = None) ->
         return {"error": f"Connection error: {str(e)}"}
 
 
+def send_action_feedback(action: Dict[str, Any], feedback_type: str) -> Dict[str, Any]:
+    """Send user feedback for an action recommendation"""
+    try:
+        payload = {
+            "action_type": action.get("action_type", "unknown"),
+            "action_parameters": action.get("action_parameters", {}),
+            "risk_score": action.get("confidence", 0.5),
+            "context_hash": "frontend_generated",  # Simple hash for frontend actions
+            "feedback_type": feedback_type,  # "will_consider" or "reject"
+            "user_notes": f"User {feedback_type} this recommendation"
+        }
+        response = requests.post(f"{API_BASE}/ai/feedback", json=payload, timeout=10)
+        if response.status_code == 200:
+            return {"success": True, "message": "Feedback recorded successfully"}
+        return {"success": False, "error": f"API error: {response.status_code}"}
+    except Exception as e:
+        return {"success": False, "error": f"Connection error: {str(e)}"}
+
+
 def get_user_preferences() -> Dict[str, Any]:
     try:
         response = requests.get(f"{API_BASE}/preferences/", timeout=10)
@@ -576,7 +595,115 @@ def render_ai_insights_tab():
                         st.error(f"❌ AI service error: {insights['error']}")
     else:
         insights = st.session_state.ai_insights
+        
+        # Executive Summary
         st.info(f"**🎯 Executive Summary:** {insights.get('executive_summary', 'Analysis completed.')}")
+        
+        # Key Metrics
+        metrics = insights.get('key_metrics', {})
+        if metrics:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("💰 At-Risk Value", f"${metrics.get('total_at_risk_value', 0):,.2f}")
+            with col2:
+                st.metric("📦 At-Risk Units", f"{metrics.get('total_at_risk_units', 0):,}")
+            with col3:
+                st.metric("🔴 High Risk Batches", metrics.get('high_risk_batches', 0))
+            with col4:
+                st.metric("📅 Avg Days to Expiry", f"{metrics.get('avg_days_to_expiry', 0):.1f}")
+        
+        # Action Recommendations
+        actions = insights.get('prioritized_actions', [])
+        if actions:
+            st.markdown("### 🎯 Recommended Actions")
+            st.markdown("*Review and provide feedback on AI recommendations*")
+            
+            for i, action in enumerate(actions[:5]):  # Show top 5 actions
+                with st.container():
+                    st.markdown(f"""
+                    <div style="
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 10px;
+                        padding: 15px;
+                        margin: 10px 0;
+                        backdrop-filter: blur(10px);
+                    ">
+                    """, unsafe_allow_html=True)
+                    
+                    col1, col2 = st.columns([3, 1])
+                    
+                    with col1:
+                        action_type = action.get('action_type', 'Unknown').upper()
+                        description = action.get('description', 'No description available')
+                        confidence = action.get('confidence', 0.5)
+                        expected_impact = action.get('expected_impact', 'Unknown impact')
+                        
+                        # Action type badge
+                        if action_type == 'MARKDOWN':
+                            badge_color = "#ff6b6b"
+                            icon = "🏷️"
+                        elif action_type == 'TRANSFER':
+                            badge_color = "#4ecdc4"
+                            icon = "🚚"
+                        elif action_type == 'REORDER':
+                            badge_color = "#45b7d1"
+                            icon = "📦"
+                        else:
+                            badge_color = "#96ceb4"
+                            icon = "⚡"
+                        
+                        st.markdown(f"""
+                        <div style="margin-bottom: 8px;">
+                            <span style="
+                                background: {badge_color};
+                                color: white;
+                                padding: 4px 12px;
+                                border-radius: 15px;
+                                font-size: 12px;
+                                font-weight: bold;
+                            ">{icon} {action_type}</span>
+                            <span style="
+                                background: rgba(255, 255, 255, 0.1);
+                                color: #ffffff;
+                                padding: 4px 8px;
+                                border-radius: 10px;
+                                font-size: 11px;
+                                margin-left: 8px;
+                            ">Confidence: {confidence:.0%}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        st.markdown(f"**Description:** {description}")
+                        st.markdown(f"**Expected Impact:** {expected_impact}")
+                    
+                    with col2:
+                        # Action buttons
+                        col_consider, col_reject = st.columns(2)
+                        
+                        with col_consider:
+                            if st.button("✅ Will Consider", key=f"consider_{i}", use_container_width=True):
+                                # Send feedback to backend
+                                feedback_result = send_action_feedback(action, "will_consider")
+                                if feedback_result.get("success"):
+                                    st.success("✅ Feedback recorded!")
+                                else:
+                                    st.error("❌ Failed to record feedback")
+                                st.rerun()
+                        
+                        with col_reject:
+                            if st.button("❌ Reject", key=f"reject_{i}", use_container_width=True):
+                                # Send feedback to backend
+                                feedback_result = send_action_feedback(action, "reject")
+                                if feedback_result.get("success"):
+                                    st.success("✅ Feedback recorded!")
+                                else:
+                                    st.error("❌ Failed to record feedback")
+                                st.rerun()
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Refresh button
         if st.button("🔄 Refresh Analysis", use_container_width=True):
             st.session_state.ai_insights = None
             st.rerun()
