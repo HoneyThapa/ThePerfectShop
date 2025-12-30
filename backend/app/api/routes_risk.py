@@ -24,7 +24,9 @@ def get_risk(snapshot_date: date):
             "days_to_expiry": r.days_to_expiry,
             "at_risk_units": r.at_risk_units,
             "at_risk_value": float(r.at_risk_value),
-            "risk_score": float(r.risk_score),
+            "risk_score": float(r.risk_score) if r.risk_score else 0.0,
         }
+        for r in rows
+    ]
         for r in rows
     ]
