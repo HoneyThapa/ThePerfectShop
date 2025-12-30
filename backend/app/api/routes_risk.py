@@ -28,5 +28,3 @@ def get_risk(snapshot_date: date):
         }
         for r in rows
     ]
-        for r in rows
-    ]

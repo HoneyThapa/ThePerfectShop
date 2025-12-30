@@ -125,25 +125,28 @@ async def record_feedback(request: FeedbackRequest):
     try:
         db = SessionLocal()
         
-        feedback = RecommendationFeedback(
-            recommendation_id=request.recommendation_id,
-            user_id="default",  # MVP: single user
-            action=request.action,
-            context_hash=request.context_hash,
-            action_type=request.action_type,
-            action_parameters=request.action_parameters,
-            risk_score=request.risk_score
-        )
-        
-        db.add(feedback)
-        db.commit()
-        db.close()
-        
-        return {
-            "status": "success",
-            "message": "Feedback recorded successfully",
-            "feedback_id": feedback.id
-        }
+        try:
+            feedback = RecommendationFeedback(
+                recommendation_id=request.recommendation_id,
+                user_id="default",  # MVP: single user
+                action=request.action,
+                context_hash=request.context_hash,
+                action_type=request.action_type,
+                action_parameters=request.action_parameters,
+                risk_score=request.risk_score
+            )
+            
+            db.add(feedback)
+            db.commit()
+            db.refresh(feedback)
+            
+            return {
+                "status": "success",
+                "message": "Feedback recorded successfully",
+                "feedback_id": feedback.id
+            }
+        finally:
+            db.close()
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error recording feedback: {str(e)}")
