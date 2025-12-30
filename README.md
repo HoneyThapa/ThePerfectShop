@@ -1,12 +1,15 @@
 # The Perfect Shop - AI Operations Copilot
 
-[![Status](https://img.shields.io/badge/Status-Completed-brightgreen.svg)](https://github.com/your-repo/theperfectshop)
+[![Status](https://img.shields.io/badge/Status-Completed-brightgreen.svg)](https://github.com/HoneyThapa/ThePerfectShop)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.47+-red.svg)](https://streamlit.io)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Branch](https://img.shields.io/badge/Default_Branch-operations__ai-blue.svg)](https://github.com/HoneyThapa/ThePerfectShop/tree/operations_ai)
 
 An AI-powered inventory management system that provides intelligent insights, risk analysis, and action recommendations for retail operations. Built with FastAPI backend and Streamlit frontend, featuring advanced AI integration through Groq LLM.
+
+> **📌 Important**: The main development branch is `operations_ai`. This branch contains the latest stable version with all AI features and UI improvements. Clone and checkout this branch for the complete experience.
 
 ![The Perfect Shop Screenshot](https://via.placeholder.com/800x400/1a1a1a/ffffff?text=The+Perfect+Shop+AI+Operations+Copilot)
 
@@ -78,8 +81,9 @@ frontend/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-repo/theperfectshop.git
-   cd theperfectshop
+   git clone https://github.com/HoneyThapa/ThePerfectShop.git
+   cd ThePerfectShop
+   git checkout operations_ai  # Switch to the main development branch
    ```
 
 2. **Set up the backend**
@@ -248,10 +252,10 @@ theperfectshop/
 
 ### Contributing
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch from `operations_ai`
 3. Make your changes
 4. Test thoroughly
-5. Submit a pull request
+5. Submit a pull request to `operations_ai` branch
 
 ## 📚 Documentation
 
@@ -284,10 +288,10 @@ theperfectshop/
 - Verify CSV encoding (UTF-8 recommended)
 
 ### Getting Help
-- Check the logs for detailed error messages
-- Review the API documentation at `/docs`
-- Ensure all dependencies are installed correctly
-- Verify environment variables are set properly
+- Create an issue in the [GitHub repository](https://github.com/HoneyThapa/ThePerfectShop)
+- Check the troubleshooting section above
+- Review the comprehensive documentation
+- Use the `operations_ai` branch for the latest features
 
 ## 📄 License
 
@@ -303,14 +307,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and questions:
-- Create an issue in the GitHub repository
+- Create an issue in the [GitHub repository](https://github.com/HoneyThapa/ThePerfectShop)
 - Check the troubleshooting section above
 - Review the comprehensive documentation
+- Use the `operations_ai` branch for the latest stable version
 
 ---
 
 **Status**: ✅ Production Ready  
 **Version**: 1.0.0  
+**Default Branch**: `operations_ai`  
 **Last Updated**: December 30, 2025
 
 Built with ❤️ for modern inventory management

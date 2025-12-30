@@ -10,3 +10,4 @@ openpyxl
 httpx
 tenacity
 requests
+python-dotenv
