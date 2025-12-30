@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\api\routes_auth.py
+# hypothesis_version: 6.148.8
+
+[100, '/auth', '/login', '/login/form', '/logout', '/profile', '/test-token', '/validate', 'INVALID_CREDENTIALS', 'LOGIN_ERROR', 'admin', 'admin_001', 'analyst', 'analyst_001', 'auth_api', 'authentication', 'bearer', 'client_ip', 'error', 'error_code', 'invalid_credentials', 'is_active', 'login_error', 'login_failed', 'login_successful', 'logout', 'manager', 'manager_001', 'message', 'reason', 'roles', 'success', 'tokens', 'usage', 'user-agent', 'user_id', 'username', 'viewer', 'viewer_001']

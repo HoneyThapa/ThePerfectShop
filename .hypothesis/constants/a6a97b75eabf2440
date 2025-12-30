@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\error_handlers.py
+# hypothesis_version: 6.148.8
+
+[401, 403, 429, 500, ' -> ', 'DATABASE_ERROR', 'DATABASE_UNAVAILABLE', 'INTEGRITY_ERROR', 'VALIDATION_ERROR', 'Validation failed', 'client_ip', 'correlation_id', 'database_error', 'details', 'error_code', 'error_message', 'error_type', 'field', 'field_errors', 'hint', 'loc', 'message', 'method', 'msg', 'timestamp', 'traceback', 'type', 'unexpected_error', 'url', 'user-agent', 'user_agent']

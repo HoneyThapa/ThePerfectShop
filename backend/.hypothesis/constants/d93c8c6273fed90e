@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\services\features.py
+# hypothesis_version: 6.148.8
+
+[0.0, 500, 1000, 5000, 10000, 500000, 1000000, ' OR ', 'D', 'batch_processing', 'batch_size', 'date', 'end', 'features', 'full_processing', 'sku_id', 'start', 'store_id', 'strategy', 'total_sales_records', 'total_store_skus', 'units_sold']

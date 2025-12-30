@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\services\features.py
+# hypothesis_version: 6.148.8
+
+['D', 'date', 'end', 'sku_id', 'start', 'store_id', 'units_sold']

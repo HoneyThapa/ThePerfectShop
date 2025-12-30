@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-pandas
-numpy
-sqlalchemy
-psycopg2-binary
-python-multipart
-pydantic
-openpyxl

@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\main.py
+# hypothesis_version: 6.148.8
+
+[100, 1000, '*', '/', '/docs', '/health', '/redoc', '/v1.0/', '/v1.1/', '/version/', '1.0', '1.0.0', '1.1', '2025-12-30T00:00:00Z', 'Development server', 'KPIs', 'Production server', 'Proprietary', 'actions', 'api_versions', 'auth', 'bulk-operations', 'current', 'default', 'description', 'dev@expiryshield.com', 'documentation', 'email', 'healthy', 'jobs', 'message', 'name', 'recommended', 'redoc', 'risk', 'startup', 'status', 'supported', 'swagger', 'timestamp', 'upload', 'url', 'usage', 'v1.0', 'v1.1', 'version', 'version-info', 'version_endpoints', 'version_info', 'version_selection']

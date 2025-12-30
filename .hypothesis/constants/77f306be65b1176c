@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\api\routes_actions.py
+# hypothesis_version: 6.148.8
+
+[50.0, 100, 400, 404, 500, '/', '/actions', '/generate', '/{action_id}', '/{action_id}/approve', 'APPROVED', 'Action not found', 'DONE', 'Filter by store ID', 'LIQUIDATE', 'MARKDOWN', 'PROPOSED', 'REJECTED', 'TRANSFER', 'action_id', 'action_ids', 'action_type', 'actions', 'batch_id', 'cleared_units', 'created_at', 'discount_pct', 'expected_savings', 'from_store', 'measured_at', 'message', 'new_status', 'notes', 'outcome', 'qty', 'recommendations', 'recovered_value', 'sku_id', 'status', 'to_store']

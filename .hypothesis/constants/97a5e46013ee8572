@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\auth.py
+# hypothesis_version: 6.148.8
+
+['30', 'AUTHORIZATION_FAILED', 'Access token created', 'Bearer', 'HS256', 'Invalid token', 'JWT_SECRET_KEY', 'Token has expired', 'WWW-Authenticate', 'admin', 'admin123', 'admin_001', 'analyst', 'analyst123', 'analyst_001', 'approve_actions', 'auth', 'authentication_error', 'authorization_failed', 'client_ip', 'delete', 'error', 'error_code', 'exp', 'expires_at', 'insufficient_roles', 'invalid_token', 'is_active', 'manager', 'manager123', 'manager_001', 'message', 'missing_permissions', 'password_hash', 'path', 'read', 'reason', 'required_permissions', 'required_roles', 'roles', 'test_user', 'testuser', 'upload', 'user-agent', 'user_authenticated', 'user_id', 'user_permissions', 'user_roles', 'username', 'viewer', 'write']

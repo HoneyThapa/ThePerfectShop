@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\services\kpis.py
+# hypothesis_version: 6.148.8
+
+[0.0, 0.1, 10.0, 100, 365, 'APPROVED', 'APPROVED -> DONE', 'COMPLETED', 'CREATED', 'DONE', 'LIQUIDATE', 'MARKDOWN', 'OUTCOME_RECORDED', 'PROPOSED', 'TRANSFER', 'action_details', 'action_id', 'action_type', 'actual', 'at_risk_value', 'batch_id', 'cleared_units', 'daily', 'days_to_expiry', 'details', 'event_type', 'expected', 'expected_savings', 'financial_impact', 'from_store', 'monthly', 'notes', 'period_end', 'period_start', 'qty', 'recovered_value', 'risk_score', 'sku_id', 'status_change', 'timestamp', 'to_store', 'total_actions', 'total_variance', 'user_id', 'variance', 'variance_percentage', 'weekly']

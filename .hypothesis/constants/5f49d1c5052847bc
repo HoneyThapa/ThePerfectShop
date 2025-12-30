@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\response_models.py
+# hypothesis_version: 6.148.8
+
+[123, 150, 1000, '2024-01-15T10:30:00Z', 'Current page number', 'DATABASE_ERROR', 'Email is required', 'Error timestamp', 'Example', 'FILE_TOO_LARGE', 'INTERNAL_ERROR', 'INVALID_CREDENTIALS', 'INVALID_FILE_FORMAT', 'INVALID_FORMAT', 'RATE_LIMIT_EXCEEDED', 'REQUIRED', 'RESOURCE_NOT_FOUND', 'Response timestamp', 'TOKEN_EXPIRED', 'VALIDATION_ERROR', 'VALUE_OUT_OF_RANGE', 'Validation failed', 'code', 'data', 'email', 'error_code', 'errors', 'example', 'field', 'has_next', 'has_previous', 'id', 'message', 'metadata', 'name', 'page', 'page_size', 'pagination', 'req_123456', 'request_id', 'success', 'timestamp', 'total_count', 'total_pages']

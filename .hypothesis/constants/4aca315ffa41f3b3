@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\main.py
+# hypothesis_version: 6.148.8
+
+[100, 1000, '*', '/', '/docs', '/health', '/redoc', '1.0.0', '2025-12-30T00:00:00Z', 'healthy', 'message', 'status', 'timestamp', 'version']

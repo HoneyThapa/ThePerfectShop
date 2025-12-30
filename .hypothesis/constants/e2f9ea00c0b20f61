@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\db\models.py
+# hypothesis_version: 6.148.8
+
+[100, 'Action', 'Action.from_store', 'Action.to_store', 'ActionOutcome', 'BatchRisk', 'FeatureStoreSKU', 'InventoryBatch', 'Purchase', 'SKUMaster', 'SalesDaily', 'StoreMaster', 'action', 'action_outcomes', 'actions', 'actions.action_id', 'actions_from', 'actions_to', 'batch_id', 'batch_risk', 'batch_risks', 'data_change_tracking', 'date', 'features', 'features_store_sku', 'from_store_ref', 'inventory_batches', 'job_executions', 'outcomes', 'purchases', 'raw_uploads', 'received_date', 'sales', 'sales_daily', 'sku', 'sku_id', 'sku_master', 'sku_master.sku_id', 'snapshot_date', 'store', 'store_id', 'store_master', 'to_store_ref']

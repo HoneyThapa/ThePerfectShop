@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\api\routes_jobs.py
+# hypothesis_version: 6.148.8
+
+[50.0, 404, 500, '/', '/jobs', '/system/health', '/{job_name}', '/{job_name}/history', '/{job_name}/trigger', 'full_refresh', 'jobs', 'lookback_days', 'min_risk_score', 'nightly_risk_scoring']

@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\error_handlers.py
+# hypothesis_version: 6.148.8
+
+[401, 403, 429, 500, ' -> ', 'client_ip', 'code', 'correlation_id', 'database_error', 'error_code', 'error_message', 'error_type', 'field', 'field_errors', 'loc', 'message', 'method', 'msg', 'timestamp', 'traceback', 'type', 'unexpected_error', 'url', 'user-agent', 'user_agent']

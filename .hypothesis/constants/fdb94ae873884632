@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\api\routes_kpis.py
+# hypothesis_version: 6.148.8
+
+[400, 404, 500, '/audit/{action_id}', '/dashboard', '/financial-impact', '/inventory', '/kpis', '/savings', '2024-01-15', 'KPIs', 'action_id', 'cleared_units', 'daily', 'high_risk_batches', 'low_risk_batches', 'measured_at', 'medium_risk_batches', 'monthly', 'notes', 'periods_count', 'recovered_value', 'success', 'total_actions', 'total_batches', 'total_savings', 'weekly']

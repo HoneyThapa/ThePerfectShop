@@ -7,3 +7,14 @@ psycopg2-binary
 python-multipart
 pydantic
 openpyxl
+pytest
+hypothesis
+alembic
+python-json-logger
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+apscheduler
+redis
+prometheus_client
+psutil

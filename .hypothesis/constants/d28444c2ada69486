@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\services\ingestion.py
+# hypothesis_version: 6.148.8
+
+['as_of_date', 'batch_id', 'best before', 'date', 'exp_dt', 'expiry', 'expiry_date', 'item_id', 'location', 'on hand', 'on_hand_qty', 'qty', 'received_date', 'received_qty', 'selling_price', 'sku', 'sku code', 'sku_id', 'snapshot', 'snapshot_date', 'stock', 'store', 'store_id', 'txn_date', 'unit_cost', 'units_sold']
