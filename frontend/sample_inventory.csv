@@ -1,0 +1,11 @@
+store_id,sku_id,product_name,category,batch_id,expiry_date,on_hand_qty,unit_cost,avg_daily_sales
+S001,SKU101,Milk 1L,Dairy,B001,2025-01-05,120,42,8
+S001,SKU102,Curd 500g,Dairy,B002,2025-01-08,90,30,6
+S001,SKU103,Bread Loaf,Bakery,B003,2024-12-30,150,25,12
+S002,SKU101,Milk 1L,Dairy,B004,2025-01-06,60,42,10
+S002,SKU104,Butter 200g,Dairy,B005,2025-01-20,40,95,3
+S002,SKU105,Cheese Slice,Dairy,B006,2025-02-10,70,110,2
+S003,SKU106,Apple Juice,Beverage,B007,2025-03-01,80,60,4
+S003,SKU107,Orange Juice,Beverage,B008,2025-02-15,65,65,3
+S003,SKU108,Cookies Pack,Snacks,B009,2025-06-30,200,20,15
+S001,SKU109,Chips Pack,Snacks,B010,2025-04-12,180,18,14
