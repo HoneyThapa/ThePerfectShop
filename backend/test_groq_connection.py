@@ -5,8 +5,11 @@ Test Groq API connection directly
 
 import httpx
 import json
-
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
@@ -21,7 +24,7 @@ def test_groq_direct():
     }
     
     payload = {
-        "model": "llama-3.1-70b-versatile",
+        "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "user", "content": "Say hello in JSON format: {\"message\": \"hello\"}"}
         ],
@@ -62,7 +65,7 @@ def test_groq_without_json_format():
     }
     
     payload = {
-        "model": "llama-3.1-70b-versatile",
+        "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "user", "content": "Say hello"}
         ],

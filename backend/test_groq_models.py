@@ -5,8 +5,11 @@ Test available Groq models
 
 import httpx
 import json
-
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"

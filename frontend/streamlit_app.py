@@ -86,7 +86,7 @@ body::before {{
     position: fixed;
     inset: 0;
     z-index: -3;
-    background-image: url("{BG_URL}");
+    background-image: url("https://eu-images.contentstack.com/v3/assets/blt58a1f8f560a1ab0e/bltfedad5432e37a8b8/669f14c173512f96edb058a3/The_20Fresh_20Market-2nd_20Carmel_20IN_20store-grand_20opening-produce_20dept.jpg");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
