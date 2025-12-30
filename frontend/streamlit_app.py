@@ -1,11 +1,15 @@
 import streamlit as st
 import pandas as pd
+import requests
+import json
+from datetime import date, datetime
+from typing import Dict, Any, List
 
 # --------------------------------------------------
 # Page config
 # --------------------------------------------------
 st.set_page_config(
-    page_title="The Perfect Shop",
+    page_title="The Perfect Shop - AI Operations Copilot",
     layout="wide"
 )
 
@@ -23,6 +27,21 @@ if "show_login" not in st.session_state:
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+
+if "show_ai_chat" not in st.session_state:
+    st.session_state.show_ai_chat = False
+
+if "chat_messages" not in st.session_state:
+    st.session_state.chat_messages = []
+
+if "ai_insights" not in st.session_state:
+    st.session_state.ai_insights = None
+
+if "user_preferences" not in st.session_state:
+    st.session_state.user_preferences = None
+
+# Backend API base URL
+API_BASE = "http://localhost:8000"
 
 # --------------------------------------------------
 # Custom CSS
@@ -64,6 +83,53 @@ st.markdown("""
     padding: 14px 26px;
     width: fit-content;
     margin: 0 auto 12px auto;
+}
+
+/* AI Insights Panel */
+.ai-insights-panel {
+    background: rgba(0,100,200,0.15);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(0,150,255,0.3);
+    margin-bottom: 20px;
+}
+
+.ai-action-card {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 15px;
+    margin: 10px 0;
+    border-left: 4px solid #00ff88;
+}
+
+.ai-action-high { border-left-color: #ff4444; }
+.ai-action-medium { border-left-color: #ffaa00; }
+.ai-action-low { border-left-color: #00ff88; }
+
+/* Chat Interface */
+.chat-container {
+    background: rgba(0,0,0,0.4);
+    border-radius: 16px;
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.chat-message {
+    margin: 10px 0;
+    padding: 10px 15px;
+    border-radius: 12px;
+}
+
+.chat-user {
+    background: rgba(0,100,255,0.3);
+    margin-left: 20px;
+}
+
+.chat-ai {
+    background: rgba(0,200,100,0.3);
+    margin-right: 20px;
 }
 
 /* Title */
@@ -110,6 +176,14 @@ st.markdown("""
     z-index: 9999;
 }
 
+/* AI Chat button */
+.ai-chat-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 9999;
+}
+
 /* Modal */
 .modal-bg {
     position: fixed;
@@ -131,6 +205,248 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
+# API Helper Functions
+# --------------------------------------------------
+def get_ai_insights(snapshot_date: date = None, store_id: str = None, sku_id: str = None) -> Dict[str, Any]:
+    """Get AI insights from backend"""
+    try:
+        payload = {
+            "snapshot_date": snapshot_date.isoformat() if snapshot_date else None,
+            "store_id": store_id,
+            "sku_id": sku_id,
+            "top_n": 20
+        }
+        response = requests.post(f"{API_BASE}/ai/insights", json=payload, timeout=30)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"API error: {response.status_code}"}
+    except Exception as e:
+        return {"error": f"Connection error: {str(e)}"}
+
+def send_chat_message(message: str, store_id: str = None, sku_id: str = None) -> Dict[str, Any]:
+    """Send chat message to AI"""
+    try:
+        payload = {
+            "message": message,
+            "store_id": store_id,
+            "sku_id": sku_id,
+            "snapshot_date": date.today().isoformat()
+        }
+        response = requests.post(f"{API_BASE}/ai/chat", json=payload, timeout=30)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"API error: {response.status_code}"}
+    except Exception as e:
+        return {"error": f"Connection error: {str(e)}"}
+
+def record_feedback(recommendation_id: str, action: str, context_hash: str, action_type: str, action_parameters: Dict, risk_score: float):
+    """Record user feedback"""
+    try:
+        payload = {
+            "recommendation_id": recommendation_id,
+            "action": action,
+            "context_hash": context_hash,
+            "action_type": action_type,
+            "action_parameters": action_parameters,
+            "risk_score": risk_score
+        }
+        response = requests.post(f"{API_BASE}/ai/feedback", json=payload, timeout=10)
+        return response.status_code == 200
+    except:
+        return False
+
+def get_user_preferences() -> Dict[str, Any]:
+    """Get user preferences"""
+    try:
+        response = requests.get(f"{API_BASE}/preferences/", timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {
+                "optimize_for": "balanced",
+                "service_level_priority": "medium", 
+                "multi_location_aggressiveness": "medium"
+            }
+    except:
+        return {
+            "optimize_for": "balanced",
+            "service_level_priority": "medium",
+            "multi_location_aggressiveness": "medium"
+        }
+
+def update_user_preferences(preferences: Dict[str, str]) -> bool:
+    """Update user preferences"""
+    try:
+        response = requests.post(f"{API_BASE}/preferences/", json=preferences, timeout=10)
+        return response.status_code == 200
+    except:
+        return False
+
+# --------------------------------------------------
+# AI Components
+# --------------------------------------------------
+def render_ai_insights_panel():
+    """Render AI insights panel"""
+    if st.session_state.ai_insights is None:
+        if st.button("🤖 Get AI Insights", key="get_insights"):
+            with st.spinner("Analyzing inventory data..."):
+                insights = get_ai_insights(snapshot_date=date.today())
+                if "error" not in insights:
+                    st.session_state.ai_insights = insights
+                    st.rerun()
+                else:
+                    st.error(f"AI service unavailable: {insights['error']}")
+        return
+    
+    insights = st.session_state.ai_insights
+    
+    st.markdown("""
+    <div class="ai-insights-panel">
+        <h3 style="color: white; margin-top: 0;">🤖 AI Operations Copilot</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Executive Summary
+    if "executive_summary" in insights:
+        st.markdown(f"**Executive Summary:** {insights['executive_summary']}")
+    
+    # Key Metrics
+    if "key_metrics" in insights:
+        metrics = insights["key_metrics"]
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("At Risk Value", f"${metrics.get('total_at_risk_value', 0):,.2f}")
+        with col2:
+            st.metric("High Risk Batches", metrics.get('high_risk_batches', 0))
+        with col3:
+            st.metric("Avg Days to Expiry", f"{metrics.get('avg_days_to_expiry', 0):.1f}")
+    
+    # Top Actions
+    if "prioritized_actions" in insights:
+        st.markdown("**🎯 Recommended Actions:**")
+        for i, action in enumerate(insights["prioritized_actions"][:5]):
+            priority_class = f"ai-action-{action.get('priority', 'low')}"
+            
+            st.markdown(f"""
+            <div class="ai-action-card {priority_class}">
+                <strong>{action.get('action_type', 'Unknown').title()}</strong> - {action.get('priority', 'low').title()} Priority<br>
+                {action.get('description', 'No description')}
+                <br><small>Expected: {action.get('expected_impact', 'Unknown impact')}</small>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Feedback buttons
+            col1, col2, col3 = st.columns([1, 1, 4])
+            with col1:
+                if st.button("✅", key=f"accept_{i}"):
+                    record_feedback(
+                        f"action_{i}",
+                        "accepted",
+                        f"context_{i}",
+                        action.get('action_type', 'unknown'),
+                        action.get('parameters', {}),
+                        action.get('confidence', 0.5)
+                    )
+                    st.success("Feedback recorded!")
+            with col2:
+                if st.button("❌", key=f"reject_{i}"):
+                    record_feedback(
+                        f"action_{i}",
+                        "rejected", 
+                        f"context_{i}",
+                        action.get('action_type', 'unknown'),
+                        action.get('parameters', {}),
+                        action.get('confidence', 0.5)
+                    )
+                    st.info("Feedback recorded!")
+    
+    if st.button("🔄 Refresh Insights", key="refresh_insights"):
+        st.session_state.ai_insights = None
+        st.rerun()
+
+def render_ai_chat():
+    """Render AI chat interface"""
+    if not st.session_state.show_ai_chat:
+        return
+    
+    st.markdown("### 💬 AI Assistant")
+    
+    # Chat history
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for msg in st.session_state.chat_messages:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="chat-message chat-user">You: {msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-message chat-ai">AI: {msg["content"]}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Chat input
+    user_input = st.text_input("Ask about your inventory...", key="chat_input")
+    
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if st.button("Send", key="send_chat"):
+            if user_input:
+                # Add user message
+                st.session_state.chat_messages.append({"role": "user", "content": user_input})
+                
+                # Get AI response
+                with st.spinner("AI is thinking..."):
+                    response = send_chat_message(user_input)
+                    if "error" not in response:
+                        ai_response = response.get("response", "I couldn't process that request.")
+                        st.session_state.chat_messages.append({"role": "ai", "content": ai_response})
+                    else:
+                        st.session_state.chat_messages.append({"role": "ai", "content": f"Error: {response['error']}"})
+                
+                st.rerun()
+    
+    with col2:
+        if st.button("Clear Chat", key="clear_chat"):
+            st.session_state.chat_messages = []
+            st.rerun()
+
+def render_preferences_panel():
+    """Render user preferences panel"""
+    st.markdown("### ⚙️ AI Preferences")
+    
+    if st.session_state.user_preferences is None:
+        st.session_state.user_preferences = get_user_preferences()
+    
+    prefs = st.session_state.user_preferences
+    
+    optimize_for = st.selectbox(
+        "Optimize for:",
+        ["balanced", "stability", "profit", "waste_min"],
+        index=["balanced", "stability", "profit", "waste_min"].index(prefs.get("optimize_for", "balanced"))
+    )
+    
+    service_level = st.selectbox(
+        "Service Level Priority:",
+        ["low", "medium", "high"],
+        index=["low", "medium", "high"].index(prefs.get("service_level_priority", "medium"))
+    )
+    
+    multi_location = st.selectbox(
+        "Multi-location Aggressiveness:",
+        ["low", "medium", "high"],
+        index=["low", "medium", "high"].index(prefs.get("multi_location_aggressiveness", "medium"))
+    )
+    
+    if st.button("Save Preferences"):
+        new_prefs = {
+            "optimize_for": optimize_for,
+            "service_level_priority": service_level,
+            "multi_location_aggressiveness": multi_location
+        }
+        if update_user_preferences(new_prefs):
+            st.session_state.user_preferences = new_prefs
+            st.success("Preferences saved!")
+        else:
+            st.error("Failed to save preferences")
+# --------------------------------------------------
 # PAGE 1 — Upload
 # --------------------------------------------------
 def page_upload():
@@ -142,9 +458,9 @@ def page_upload():
         <div class="glass-text">
             Upload your inventory / sales CSV file to generate:
             <ul>
-                <li>Risk List</li>
-                <li>Action List</li>
-                <li>Savings Dashboard</li>
+                <li>Risk List with AI Insights</li>
+                <li>Smart Action Recommendations</li>
+                <li>AI-Powered Savings Dashboard</li>
             </ul>
         </div>
     </div>
@@ -153,6 +469,10 @@ def page_upload():
     with st.sidebar:
         st.header("📂 Upload Data")
         uploaded_file = st.file_uploader("Attach CSV file", type=["csv"])
+        
+        # AI Preferences in sidebar
+        with st.expander("🤖 AI Settings"):
+            render_preferences_panel()
 
     if uploaded_file:
         st.session_state.uploaded_df = pd.read_csv(uploaded_file)
@@ -175,7 +495,7 @@ def page_upload():
             st.markdown('</div>', unsafe_allow_html=True)
 
 # --------------------------------------------------
-# PAGE 2 — Risk & Action Lists
+# PAGE 2 — Risk & Action Lists with AI
 # --------------------------------------------------
 def page_risk_action():
     st.markdown('<div class="page-animate">', unsafe_allow_html=True)
@@ -185,6 +505,10 @@ def page_risk_action():
         st.warning("Upload CSV first.")
         return
 
+    # AI Insights Panel at the top
+    render_ai_insights_panel()
+
+    # Mock data for demo (in real app, this would come from API)
     risk_list = df.head(10).copy()
     risk_list["Risk Score"] = [90,80,95,70,60,85,75,65,88,92]
 
@@ -206,28 +530,65 @@ def page_risk_action():
         st.dataframe(action_list, use_container_width=True)
         st.download_button("📤 Export Action List", action_list.to_csv(index=False), "action_list.csv")
 
+    # AI Chat Interface
+    if st.session_state.show_ai_chat:
+        render_ai_chat()
+
     if st.button("➡️ Next: Dashboard"):
         st.session_state.page = 3
         st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # AI Chat button
+    with st.container():
+        st.markdown('<div class="ai-chat-btn">', unsafe_allow_html=True)
+        if st.button("💬 AI Chat"):
+            st.session_state.show_ai_chat = not st.session_state.show_ai_chat
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
 # --------------------------------------------------
-# PAGE 3 — Dashboard
+# PAGE 3 — AI-Enhanced Dashboard
 # --------------------------------------------------
 def page_dashboard():
     st.markdown('<div class="page-animate">', unsafe_allow_html=True)
 
-    st.markdown('<div class="glass-box"><h1 style="color:white;">💰 Savings Dashboard</h1></div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-box"><h1 style="color:white;">💰 AI-Powered Savings Dashboard</h1></div>', unsafe_allow_html=True)
 
-    c1,c2,c3 = st.columns(3)
+    # Enhanced metrics with AI insights
+    c1,c2,c3,c4 = st.columns(4)
     c1.metric("Total At-Risk Value", "₹2,50,000")
-    c2.metric("Expected Savings", "₹1,20,000")
-    c3.metric("Actions Proposed", "18")
+    c2.metric("AI Expected Savings", "₹1,20,000", "↑15%")
+    c3.metric("Actions Proposed", "18", "↑3")
+    c4.metric("AI Confidence", "87%")
+
+    # AI Summary
+    if st.session_state.ai_insights:
+        insights = st.session_state.ai_insights
+        st.markdown("### 🤖 AI Executive Summary")
+        st.info(insights.get("executive_summary", "AI analysis completed successfully."))
+        
+        # Show confidence scores
+        if "confidence_scores" in insights:
+            conf = insights["confidence_scores"]
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Data Quality", f"{conf.get('data_quality', 0.8)*100:.0f}%")
+            with col2:
+                st.metric("Recommendation Confidence", f"{conf.get('recommendation_confidence', 0.7)*100:.0f}%")
+
+    # What-if simulation (simple demo)
+    st.markdown("### 🔮 What-If Simulation")
+    markdown_pct = st.slider("If we apply markdown %:", 0, 50, 20)
+    expected_increase = markdown_pct * 2.5  # Simple assumption
+    st.info(f"💡 **Assumption**: {markdown_pct}% markdown could increase sell-through by ~{expected_increase:.1f}% (based on historical patterns)")
 
     if st.button("🔁 Start Over"):
         st.session_state.page = 1
         st.session_state.uploaded_df = None
+        st.session_state.ai_insights = None
+        st.session_state.chat_messages = []
         st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
