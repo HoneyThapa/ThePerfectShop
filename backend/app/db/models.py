@@ -43,6 +43,7 @@ class InventoryBatch(Base):
 
 class Purchase(Base):
     __tablename__ = "purchases"
+    id = Column(Integer, primary_key=True)
     received_date = Column(Date)
     store_id = Column(String)
     sku_id = Column(String)
@@ -113,7 +114,3 @@ class NewsEvents(Base):
     impact_skus = Column(JSON)  # List of affected sku_ids
     score_modifier = Column(Numeric, default=0.0)  # -0.2 to +0.2 adjustment
     created_at = Column(TIMESTAMP, server_default=func.now())
-    risk_score = Column(Numeric)
-    __table_args__ = (
-        PrimaryKeyConstraint("snapshot_date", "store_id", "sku_id", "batch_id"),
-    )
