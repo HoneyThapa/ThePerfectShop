@@ -15,6 +15,7 @@ from app.db.models import RecommendationFeedback
 router = APIRouter(prefix="/ai", tags=["AI Operations Copilot"])
 
 class InsightsRequest(BaseModel):
+    inventory_data: Optional[List[Dict[str, Any]]] = []  # Accept inventory data directly
     snapshot_date: Optional[date] = None
     store_id: Optional[str] = None
     sku_id: Optional[str] = None
@@ -23,6 +24,7 @@ class InsightsRequest(BaseModel):
 class ChatRequest(BaseModel):
     conversation_id: Optional[str] = None
     message: str
+    inventory_data: Optional[List[Dict[str, Any]]] = []  # Accept inventory data directly
     store_id: Optional[str] = None
     sku_id: Optional[str] = None
     snapshot_date: Optional[date] = None
@@ -39,13 +41,27 @@ class FeedbackRequest(BaseModel):
 async def get_ai_insights(request: InsightsRequest):
     """Generate AI-driven insights and action recommendations"""
     try:
-        # Build context from database
-        context = build_context_for_date(
-            snapshot_date=request.snapshot_date,
-            store_id=request.store_id,
-            sku_id=request.sku_id,
-            top_n=request.top_n
-        )
+        # Check if inventory data is provided directly
+        if request.inventory_data:
+            # Build context from provided data
+            from app.services.context_builder import ContextBuilder
+            context_builder = ContextBuilder()
+            context = context_builder.build_context_from_data(
+                inventory_data=request.inventory_data,
+                snapshot_date=request.snapshot_date,
+                store_id=request.store_id,
+                sku_id=request.sku_id,
+                top_n=request.top_n
+            )
+            context_builder.close()
+        else:
+            # Build context from database (original behavior)
+            context = build_context_for_date(
+                snapshot_date=request.snapshot_date,
+                store_id=request.store_id,
+                sku_id=request.sku_id,
+                top_n=request.top_n
+            )
         
         # Generate deterministic actions
         deterministic_actions = generate_actions_for_risks(
@@ -87,13 +103,27 @@ async def get_ai_insights(request: InsightsRequest):
 async def ai_chat(request: ChatRequest):
     """Conversational AI interface for inventory questions"""
     try:
-        # Build context for the conversation
-        context = build_context_for_date(
-            snapshot_date=request.snapshot_date,
-            store_id=request.store_id,
-            sku_id=request.sku_id,
-            top_n=50  # More context for chat
-        )
+        # Check if inventory data is provided directly
+        if request.inventory_data:
+            # Build context from provided data
+            from app.services.context_builder import ContextBuilder
+            context_builder = ContextBuilder()
+            context = context_builder.build_context_from_data(
+                inventory_data=request.inventory_data,
+                snapshot_date=request.snapshot_date,
+                store_id=request.store_id,
+                sku_id=request.sku_id,
+                top_n=50  # More context for chat
+            )
+            context_builder.close()
+        else:
+            # Build context from database (original behavior)
+            context = build_context_for_date(
+                snapshot_date=request.snapshot_date,
+                store_id=request.store_id,
+                sku_id=request.sku_id,
+                top_n=50  # More context for chat
+            )
         
         # Get conversational response
         chat_response = groq_client.chat_response(

@@ -194,6 +194,141 @@ class ContextBuilder:
             for e in events
         ]
     
+    def build_context_from_data(
+        self,
+        inventory_data: List[Dict[str, Any]],
+        snapshot_date: date = None,
+        store_id: Optional[str] = None,
+        sku_id: Optional[str] = None,
+        top_n: int = 20
+    ) -> Dict[str, Any]:
+        """Build context from provided inventory data instead of database"""
+        if not snapshot_date:
+            snapshot_date = date.today()
+        
+        # Convert inventory data to DataFrame for easier processing
+        df = pd.DataFrame(inventory_data)
+        
+        # Apply filters if provided
+        if store_id:
+            df = df[df.get('store_id') == store_id]
+        if sku_id:
+            df = df[df.get('sku_id') == sku_id]
+        
+        # Calculate basic risk metrics from the data
+        risk_items = []
+        total_value = 0
+        total_units = 0
+        
+        for _, row in df.iterrows():
+            # Calculate days to expiry
+            try:
+                expiry_date = pd.to_datetime(row.get('expiry_date', '2024-12-31')).date()
+                days_to_expiry = (expiry_date - snapshot_date).days
+            except:
+                days_to_expiry = 30  # Default if parsing fails
+            
+            # Calculate risk score (simple heuristic)
+            qty = float(row.get('on_hand_qty', 0))
+            cost = float(row.get('cost_per_unit', 0))
+            value = qty * cost
+            
+            # Risk factors
+            expiry_risk = max(0, (30 - days_to_expiry) / 30)  # Higher risk as expiry approaches
+            quantity_risk = min(qty / 100, 1.0)  # Higher risk for larger quantities
+            risk_score = (expiry_risk * 0.7 + quantity_risk * 0.3) * 100
+            
+            total_value += value
+            total_units += qty
+            
+            if risk_score > 20:  # Only include items with significant risk
+                risk_items.append({
+                    "store_id": row.get('store_id', 'UNKNOWN'),
+                    "sku_id": row.get('sku_id', 'UNKNOWN'),
+                    "batch_id": row.get('batch_id', 'UNKNOWN'),
+                    "product_name": row.get('product_name', 'Unknown Product'),
+                    "category": row.get('category', 'Unknown'),
+                    "on_hand_qty": qty,
+                    "at_risk_units": qty,  # Add expected field name
+                    "at_risk_value": value,  # Add expected field name
+                    "expiry_date": row.get('expiry_date', '2024-12-31'),
+                    "cost_per_unit": cost,
+                    "selling_price": float(row.get('selling_price', cost * 1.5)),
+                    "days_to_expiry": days_to_expiry,
+                    "risk_score": risk_score,
+                    "total_value": value
+                })
+        
+        # Sort by risk score and limit
+        risk_items = sorted(risk_items, key=lambda x: x['risk_score'], reverse=True)[:top_n]
+        
+        context = {
+            "snapshot_date": snapshot_date.isoformat(),
+            "filters": {
+                "store_id": store_id,
+                "sku_id": sku_id,
+                "top_n": top_n
+            },
+            "risk_items": risk_items,
+            "key_metrics": {
+                "total_at_risk_value": sum(item['total_value'] for item in risk_items),
+                "total_at_risk_units": sum(item['on_hand_qty'] for item in risk_items),
+                "high_risk_batches": len([item for item in risk_items if item['risk_score'] > 70]),
+                "medium_risk_batches": len([item for item in risk_items if 30 < item['risk_score'] <= 70]),
+                "low_risk_batches": len([item for item in risk_items if item['risk_score'] <= 30]),
+                "avg_days_to_expiry": sum(item['days_to_expiry'] for item in risk_items) / len(risk_items) if risk_items else 0,
+                "total_inventory_value": total_value,
+                "total_inventory_units": total_units
+            },
+            "velocity_features": [],  # Could be enhanced with historical data
+            "user_preferences": self._get_default_preferences(),
+            "news_events": self._get_recent_news_events(snapshot_date)
+        }
+        
+        return context
+    
+    def _get_default_preferences(self) -> Dict[str, Any]:
+        """Get default user preferences when no database is available"""
+        return {
+            "optimize_for": "cost",
+            "service_level_priority": "medium",
+            "multi_location_aggressiveness": "medium",
+            "markdown_threshold": 0.7,
+            "transfer_threshold": 0.5,
+            "disposal_threshold": 0.9
+        }
+    
+    def _get_recent_news_events(self, snapshot_date: date) -> List[Dict[str, Any]]:
+        """Get recent news events (simplified version for data-only mode)"""
+        try:
+            # Try to get from database if available
+            start_date = snapshot_date - timedelta(days=7)
+            
+            events = self.db.query(NewsEvents).filter(
+                NewsEvents.event_date >= start_date,
+                NewsEvents.event_date <= snapshot_date
+            ).all()
+            
+            return [
+                {
+                    "event_date": e.event_date.isoformat(),
+                    "event_type": e.event_type,
+                    "description": e.description,
+                    "score_modifier": float(e.score_modifier)
+                }
+                for e in events
+            ]
+        except:
+            # Return default events if database is not available
+            return [
+                {
+                    "event_date": snapshot_date.isoformat(),
+                    "event_type": "market_condition",
+                    "description": "Normal market conditions",
+                    "score_modifier": 1.0
+                }
+            ]
+
     def close(self):
         """Close database session"""
         self.db.close()

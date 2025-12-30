@@ -26,6 +26,28 @@ def test_ai_insights():
                 "expiry_date": "2024-02-15",
                 "cost_per_unit": 2.50,
                 "selling_price": 4.00
+            },
+            {
+                "store_id": "STORE001",
+                "sku_id": "SKU002", 
+                "batch_id": "BATCH002",
+                "product_name": "Milk Cartons",
+                "category": "Dairy",
+                "on_hand_qty": 25,
+                "expiry_date": "2024-01-05",  # Very close to expiry
+                "cost_per_unit": 1.20,
+                "selling_price": 2.50
+            },
+            {
+                "store_id": "STORE001",
+                "sku_id": "SKU003", 
+                "batch_id": "BATCH003",
+                "product_name": "Bread Loaves",
+                "category": "Bakery",
+                "on_hand_qty": 100,
+                "expiry_date": "2024-01-02",  # Expired
+                "cost_per_unit": 0.80,
+                "selling_price": 2.00
             }
         ],
         "snapshot_date": date.today().isoformat(),
@@ -57,6 +79,30 @@ def test_ai_chat():
     
     payload = {
         "message": "What are the main risks in my inventory?",
+        "inventory_data": [
+            {
+                "store_id": "STORE001",
+                "sku_id": "SKU001", 
+                "batch_id": "BATCH001",
+                "product_name": "Fresh Apples",
+                "category": "Fruits",
+                "on_hand_qty": 50,
+                "expiry_date": "2024-02-15",
+                "cost_per_unit": 2.50,
+                "selling_price": 4.00
+            },
+            {
+                "store_id": "STORE001",
+                "sku_id": "SKU002", 
+                "batch_id": "BATCH002",
+                "product_name": "Milk Cartons",
+                "category": "Dairy",
+                "on_hand_qty": 25,
+                "expiry_date": "2024-01-05",
+                "cost_per_unit": 1.20,
+                "selling_price": 2.50
+            }
+        ],
         "store_id": None,
         "sku_id": None,
         "snapshot_date": date.today().isoformat()

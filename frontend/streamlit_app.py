@@ -316,7 +316,14 @@ def sync_uploaded_class():
 # --------------------------------------------------
 def get_ai_insights(snapshot_date: date = None, store_id: str = None, sku_id: str = None) -> Dict[str, Any]:
     try:
+        # Get inventory data from session state
+        inventory_data = []
+        if st.session_state.uploaded_df is not None:
+            # Convert DataFrame to list of dictionaries
+            inventory_data = st.session_state.uploaded_df.to_dict('records')
+        
         payload = {
+            "inventory_data": inventory_data,  # Include actual inventory data
             "snapshot_date": snapshot_date.isoformat() if snapshot_date else None,
             "store_id": store_id,
             "sku_id": sku_id,
@@ -332,8 +339,15 @@ def get_ai_insights(snapshot_date: date = None, store_id: str = None, sku_id: st
 
 def send_chat_message(message: str, store_id: str = None, sku_id: str = None) -> Dict[str, Any]:
     try:
+        # Get inventory data from session state
+        inventory_data = []
+        if st.session_state.uploaded_df is not None:
+            # Convert DataFrame to list of dictionaries
+            inventory_data = st.session_state.uploaded_df.to_dict('records')
+        
         payload = {
             "message": message,
+            "inventory_data": inventory_data,  # Include actual inventory data
             "store_id": store_id,
             "sku_id": sku_id,
             "snapshot_date": date.today().isoformat(),
