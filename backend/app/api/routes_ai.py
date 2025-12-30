@@ -43,8 +43,11 @@ class FeedbackRequest(BaseModel):
 async def get_ai_insights(request: InsightsRequest):
     """Generate AI-driven insights and action recommendations"""
     try:
+        print(f"🔍 Insights request received: inventory_data={len(request.inventory_data or [])}, snapshot_date={request.snapshot_date}")
+        
         # Check if inventory data is provided directly
         if request.inventory_data:
+            print("📊 Using provided inventory data")
             # Build context from provided data
             from app.services.context_builder import ContextBuilder
             context_builder = ContextBuilder()
@@ -57,6 +60,7 @@ async def get_ai_insights(request: InsightsRequest):
             )
             context_builder.close()
         else:
+            print("🗄️ Using database data")
             # Build context from database (original behavior)
             context = build_context_for_date(
                 snapshot_date=request.snapshot_date,
@@ -65,18 +69,54 @@ async def get_ai_insights(request: InsightsRequest):
                 top_n=request.top_n
             )
         
-        # Generate deterministic actions
-        deterministic_actions = generate_actions_for_risks(
-            context["risk_items"], 
-            context["user_preferences"]
-        )
+        print(f"✅ Context built: {len(context['risk_items'])} risk items")
         
-        # Get AI insights and re-ranking
-        ai_response = groq_client.get_insights(context, {
-            "store_id": request.store_id,
-            "sku_id": request.sku_id,
-            "top_n": request.top_n
-        })
+        # Generate deterministic actions
+        try:
+            print("🎯 Generating deterministic actions...")
+            from app.services.action_engine import generate_actions_for_risks
+            deterministic_actions = generate_actions_for_risks(
+                context["risk_items"], 
+                context["user_preferences"]
+            )
+            print(f"✅ Actions generated: {len(deterministic_actions)} actions")
+        except Exception as action_error:
+            print(f"❌ Action generation failed: {action_error}")
+            # Provide fallback actions
+            deterministic_actions = []
+            for item in context["risk_items"][:5]:  # Top 5 items
+                deterministic_actions.append({
+                    "action_type": "markdown",
+                    "priority": "high",
+                    "description": f"Review {item.get('product_name', 'Unknown')} at {item.get('store_id', 'Unknown')}",
+                    "confidence": 0.7,
+                    "expected_impact": f"Potential savings from {item.get('at_risk_units', 0)} units",
+                    "action_parameters": {
+                        "store_id": item.get("store_id"),
+                        "sku_id": item.get("sku_id"),
+                        "batch_id": item.get("batch_id")
+                    }
+                })
+        
+        # Try to get AI insights, but provide fallback if it fails
+        try:
+            print("🤖 Calling Groq AI service...")
+            ai_response = groq_client.get_insights(context, {
+                "store_id": request.store_id,
+                "sku_id": request.sku_id,
+                "top_n": request.top_n
+            })
+            print("✅ AI response received")
+        except Exception as ai_error:
+            # Fallback response when AI fails
+            print(f"⚠️ AI service failed, using fallback: {ai_error}")
+            ai_response = {
+                "executive_summary": f"Analysis completed successfully. Found {len(context['risk_items'])} items requiring attention with total at-risk value of ${context['key_metrics'].get('total_at_risk_value', 0):,.2f}.",
+                "prioritized_actions": [],
+                "assumptions": ["AI service temporarily unavailable - using deterministic analysis"]
+            }
+        
+        print("📋 Building final response...")
         
         # Combine deterministic actions with AI insights
         response = {

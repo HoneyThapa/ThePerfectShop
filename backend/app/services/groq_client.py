@@ -4,22 +4,31 @@ import time
 from typing import Dict, Any, Optional
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
+from dotenv import load_dotenv
+
+# Ensure environment variables are loaded
+load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 class GroqClient:
     def __init__(self):
-        self.api_key = GROQ_API_KEY
+        # Reload environment variables to ensure they're available
+        load_dotenv()
+        self.api_key = os.getenv("GROQ_API_KEY")
         self.base_url = GROQ_BASE_URL
         
         if not self.api_key:
-            raise ValueError("GROQ_API_KEY environment variable is not set")
-            
-        self.client = httpx.Client(
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            timeout=30.0
-        )
+            print("WARNING: GROQ_API_KEY not found in environment")
+            # Don't raise error immediately, allow fallback behavior
+            self.api_key = None
+            self.client = None
+        else:
+            self.client = httpx.Client(
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=30.0
+            )
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     def chat_completion(
@@ -30,6 +39,9 @@ class GroqClient:
         max_tokens: int = 2048
     ) -> Dict[str, Any]:
         """Make a chat completion request to Groq API"""
+        if not self.client or not self.api_key:
+            raise Exception("Groq API client not properly initialized - API key missing")
+            
         try:
             # Remove JSON format requirement as it may cause issues
             payload = {
@@ -71,6 +83,14 @@ class GroqClient:
 
     def get_insights(self, context_data: Dict[str, Any], filters: Optional[Dict] = None) -> Dict[str, Any]:
         """Generate AI insights from risk context data"""
+        if not self.client or not self.api_key:
+            # Return fallback response when API key is not available
+            return {
+                "executive_summary": f"Analysis completed. Found {len(context_data.get('risk_items', []))} items requiring attention.",
+                "prioritized_actions": [],
+                "key_metrics": context_data.get("key_metrics", {}),
+                "assumptions": ["AI service unavailable - using deterministic analysis"]
+            }
         system_prompt = """You are an expert supply chain analyst for retail inventory management. 
         You provide grounded insights based ONLY on the provided data. Never invent SKUs, quantities, or database fields.
         
@@ -165,6 +185,14 @@ Focus on the highest risk items and most impactful actions. Cite specific eviden
 
     def chat_response(self, message: str, context_data: Dict[str, Any], conversation_history: list = None) -> Dict[str, Any]:
         """Generate conversational response with context"""
+        if not self.client or not self.api_key:
+            # Return fallback response when API key is not available
+            return {
+                "response": f"I can see your inventory data but AI analysis is currently unavailable. You have {len(context_data.get('risk_items', []))} items that may need attention based on expiry dates and risk scores.",
+                "structured_actions": [],
+                "evidence_used": ["Deterministic analysis of inventory data"],
+                "data_gaps": ["AI service temporarily unavailable"]
+            }
         system_prompt = """You are a helpful supply chain analyst assistant. Answer questions about inventory risk data.
         
         Rules:
@@ -205,5 +233,10 @@ Available Context Data:
                 "data_gaps": ["AI service temporarily unavailable"]
             }
 
-# Global client instance
-groq_client = GroqClient()
+# Global client instance with error handling
+try:
+    groq_client = GroqClient()
+    print("✅ Groq client initialized successfully")
+except Exception as e:
+    print(f"⚠️ Groq client initialization failed: {e}")
+    groq_client = GroqClient()  # Will create client with fallback behavior
