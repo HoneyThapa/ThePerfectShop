@@ -165,3 +165,34 @@ class ActionOutcome(Base):
     
     # Relationships
     action = relationship("Action", back_populates="outcomes")
+
+
+class JobExecution(Base):
+    """Track job execution history and status."""
+    __tablename__ = "job_executions"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    job_name = Column(String(100), nullable=False)
+    job_type = Column(String(50), nullable=False)
+    status = Column(String(20), nullable=False)  # PENDING, RUNNING, COMPLETED, FAILED
+    started_at = Column(TIMESTAMP, nullable=True)
+    completed_at = Column(TIMESTAMP, nullable=True)
+    error_message = Column(String, nullable=True)
+    parameters = Column(JSON, nullable=True)
+    result_summary = Column(JSON, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
+class DataChangeTracking(Base):
+    """Track data changes for incremental processing optimization."""
+    __tablename__ = "data_change_tracking"
+    
+    table_name = Column(String(100), nullable=False, primary_key=True)
+    processing_type = Column(String(50), nullable=False, primary_key=True)  # features, risk_scoring, action_generation
+    snapshot_date = Column(Date, nullable=False, primary_key=True)
+    last_processed_at = Column(TIMESTAMP, nullable=False)
+    records_processed = Column(Integer, nullable=False, default=0)
+    data_hash = Column(String(64), nullable=True)  # Hash of relevant data for change detection
+    change_summary = Column(JSON, nullable=True)  # Summary of what changed
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

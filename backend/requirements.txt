@@ -9,3 +9,10 @@ pydantic
 openpyxl
 pytest
 hypothesis
+alembic
+python-json-logger
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+apscheduler
+redis

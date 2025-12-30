@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\services\actions.py
+# hypothesis_version: 6.148.8
+
+[0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0, 1.2, 1.3, 1.5, 2.0, 2.5, 5.0, 10.0, 14.0, 30.0, 50.0, 70.0, 80.0, 100.0, 100, 500, 'LIQUIDATE', 'MARKDOWN', 'PROPOSED', 'TRANSFER', 'action_type', 'batch_id', 'beverage', 'clearance_rate', 'details', 'discount_pct', 'electronics', 'expected_savings', 'feasibility_score', 'food', 'from_store', 'general', 'household', 'liquidation_cost', 'personal_care', 'qty', 'recovery_rate', 'sku_id', 'store_id', 'to_store', 'transfer_cost', 'v14', 'v30', 'v7', 'velocity_improvement', 'volatility']

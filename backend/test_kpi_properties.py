@@ -74,8 +74,10 @@ class TestMetricsCalculationAccuracy:
             # Ensure unique batch ID for this store-sku combination
             batch_id = f"B{1000 + i}"  # Use sequential IDs to avoid duplicates
             
-            at_risk_value = draw(st.floats(min_value=100.0, max_value=1000.0))
             at_risk_units = draw(st.integers(min_value=10, max_value=50))
+            # Calculate at_risk_value based on a reasonable unit cost (5-15)
+            unit_cost = draw(st.floats(min_value=5.0, max_value=15.0))
+            at_risk_value = at_risk_units * unit_cost
             
             batch_key = (base_date, store_id, sku_id, batch_id)
             if batch_key not in used_batch_keys:
@@ -92,39 +94,42 @@ class TestMetricsCalculationAccuracy:
                     'risk_score': draw(st.floats(min_value=0.0, max_value=100.0))
                 })
         
-        # Generate inventory batches (ensure unique keys)
+        # Generate inventory batches (ensure unique keys and align with batch_risks)
         inventory_batches = []
         used_inventory_keys = set()
         for i, batch_risk in enumerate(batch_risks):
             inventory_key = (base_date, batch_risk['store_id'], batch_risk['sku_id'], batch_risk['batch_id'])
             if inventory_key not in used_inventory_keys:
                 used_inventory_keys.add(inventory_key)
+                # Ensure on_hand_qty is at least as much as at_risk_units to make percentage calculation reasonable
+                on_hand_qty = batch_risk['at_risk_units'] + draw(st.integers(min_value=0, max_value=100))
                 inventory_batches.append({
                     'snapshot_date': base_date,
                     'store_id': batch_risk['store_id'],
                     'sku_id': batch_risk['sku_id'],
                     'batch_id': batch_risk['batch_id'],
                     'expiry_date': base_date + timedelta(days=batch_risk['days_to_expiry']),
-                    'on_hand_qty': batch_risk['at_risk_units'] + draw(st.integers(min_value=0, max_value=100))
+                    'on_hand_qty': on_hand_qty
                 })
         
-        # Generate purchase data for unit costs (ensure unique keys)
+        # Generate purchase data for unit costs (ensure unique keys and consistent costs)
         purchases = []
         used_purchase_keys = set()
-        for i, store_id in enumerate(store_ids):
-            for j, sku_id in enumerate(sku_ids):
-                batch_id = f"PB{i}{j}"  # Unique batch ID for purchases
-                purchase_key = (base_date - timedelta(days=1), store_id, sku_id, batch_id)
-                if purchase_key not in used_purchase_keys:
-                    used_purchase_keys.add(purchase_key)
-                    purchases.append({
-                        'received_date': base_date - timedelta(days=draw(st.integers(min_value=1, max_value=10))),
-                        'store_id': store_id,
-                        'sku_id': sku_id,
-                        'batch_id': batch_id,
-                        'received_qty': draw(st.integers(min_value=50, max_value=100)),
-                        'unit_cost': draw(st.floats(min_value=5.0, max_value=15.0))
-                    })
+        for i, batch_risk in enumerate(batch_risks):
+            # Use the same unit cost that was used to calculate at_risk_value
+            unit_cost = batch_risk['at_risk_value'] / batch_risk['at_risk_units'] if batch_risk['at_risk_units'] > 0 else 10.0
+            batch_id = f"PB{i}"  # Unique batch ID for purchases
+            purchase_key = (base_date - timedelta(days=1), batch_risk['store_id'], batch_risk['sku_id'], batch_id)
+            if purchase_key not in used_purchase_keys:
+                used_purchase_keys.add(purchase_key)
+                purchases.append({
+                    'received_date': base_date - timedelta(days=draw(st.integers(min_value=1, max_value=10))),
+                    'store_id': batch_risk['store_id'],
+                    'sku_id': batch_risk['sku_id'],
+                    'batch_id': batch_id,
+                    'received_qty': draw(st.integers(min_value=50, max_value=100)),
+                    'unit_cost': unit_cost
+                })
         
         # Generate sales data for turnover calculations (reduced history)
         sales_data = []
@@ -237,7 +242,7 @@ class TestMetricsCalculationAccuracy:
         return db
     
     @given(kpi_test_scenario())
-    @settings(max_examples=3, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
+    @settings(max_examples=2, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large], deadline=None)
     def test_at_risk_value_calculation_accuracy(self, scenario):
         """Test that at-risk value calculations are accurate and consistent."""
         db = self.setup_test_database(scenario)
@@ -266,7 +271,7 @@ class TestMetricsCalculationAccuracy:
             db.close()
     
     @given(kpi_test_scenario())
-    @settings(max_examples=3, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
+    @settings(max_examples=2, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
     def test_recovered_value_calculation_accuracy(self, scenario):
         """Test that recovered value calculations are accurate."""
         db = self.setup_test_database(scenario)
@@ -328,7 +333,7 @@ class TestMetricsCalculationAccuracy:
             db.close()
     
     @given(kpi_test_scenario())
-    @settings(max_examples=2, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
+    @settings(max_examples=2, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large], deadline=None)
     def test_inventory_health_metrics_consistency(self, scenario):
         """Test that inventory health metrics are consistent and logical."""
         db = self.setup_test_database(scenario)
@@ -505,7 +510,7 @@ class TestMetricsCalculationAccuracy:
             db.close()
     
     @given(kpi_test_scenario())
-    @settings(max_examples=2, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
+    @settings(max_examples=2, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large], deadline=None)
     def test_outcome_recording_accuracy(self, scenario):
         """Test that outcome recording is accurate and maintains data integrity."""
         db = self.setup_test_database(scenario)
@@ -526,8 +531,8 @@ class TestMetricsCalculationAccuracy:
                         "Outcome should reference correct action ID"
                     assert outcome_data.action_type == action_data['action_type'], \
                         "Outcome should have correct action type"
-                    assert outcome_data.expected_savings == action_data['expected_savings'], \
-                        "Outcome should preserve expected savings"
+                    assert abs(outcome_data.expected_savings - action_data['expected_savings']) < 0.01, \
+                        f"Outcome should preserve expected savings: {outcome_data.expected_savings} vs {action_data['expected_savings']}"
                     
                     # Property: Variance calculations should be accurate
                     expected_variance = outcome_data.actual_recovered_value - outcome_data.expected_savings

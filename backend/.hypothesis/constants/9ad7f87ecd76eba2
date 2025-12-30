@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\schemas.py
+# hypothesis_version: 6.148.8
+
+[50.0, 100, 1000, 10000, '*', 'APPROVED', 'COMPLETED', 'DONE', 'FAILED', 'LIQUIDATE', 'MARKDOWN', 'PENDING', 'PROCESSING', 'PROPOSED', 'REJECTED', 'TRANSFER', 'csv', 'error', 'success', 'validation_error', 'xlsx']

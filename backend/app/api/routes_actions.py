@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import Action, ActionOutcome
 from app.services.actions import ActionEngine
+from app.auth import get_current_user, require_analyst, require_manager, User
 
 router = APIRouter(prefix="/actions", tags=["actions"])
 
@@ -49,12 +50,56 @@ class ActionCompletionRequest(BaseModel):
 @router.post("/generate")
 async def generate_action_recommendations(
     request: ActionGenerateRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst())
 ):
     """
-    Generate action recommendations for at-risk inventory.
+    Generate comprehensive action recommendations for at-risk inventory.
     
-    Requirements 3.4:
+    Analyzes high-risk inventory batches and generates optimized recommendations:
+    - **Transfers**: Move inventory to faster-selling stores
+    - **Markdowns**: Apply optimal discounts to accelerate sales
+    - **Liquidations**: Sell to liquidators when other options aren't viable
+    
+    **Request Body Example:**
+    ```json
+    {
+        "snapshot_date": "2024-01-15",
+        "min_risk_score": 60.0,
+        "include_transfers": true,
+        "include_markdowns": true,
+        "include_liquidations": true,
+        "max_recommendations": 500
+    }
+    ```
+    
+    **Response Example:**
+    ```json
+    {
+        "message": "Generated 45 action recommendations",
+        "action_ids": [1001, 1002, 1003],
+        "recommendations": [
+            {
+                "action_type": "TRANSFER",
+                "from_store": "STORE001",
+                "to_store": "STORE005",
+                "sku_id": "SKU123",
+                "batch_id": "BATCH001",
+                "qty": 25,
+                "expected_savings": 312.50
+            }
+        ]
+    }
+    ```
+    
+    **Algorithm Logic:**
+    1. Identify batches above minimum risk threshold
+    2. Calculate transfer opportunities based on velocity differences
+    3. Optimize markdown percentages for maximum recovery
+    4. Estimate liquidation values as fallback option
+    5. Rank all recommendations by expected financial impact
+    
+    **Requirements:** 3.4
     - Rank all recommendations by expected savings
     - Implement POST /actions/generate endpoint
     """
@@ -91,7 +136,8 @@ async def list_actions(
     action_type: Optional[str] = Query(None, description="Filter by type: TRANSFER, MARKDOWN, LIQUIDATE"),
     store_id: Optional[str] = Query(None, description="Filter by store ID"),
     limit: int = Query(100, description="Maximum number of actions to return"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst())
 ):
     """
     List action recommendations with optional filtering.
@@ -135,7 +181,8 @@ async def list_actions(
 async def approve_action(
     action_id: int,
     request: ActionApprovalRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_manager())
 ):
     """
     Approve or reject an action recommendation.
@@ -171,7 +218,8 @@ async def approve_action(
 async def complete_action(
     action_id: int,
     request: ActionCompletionRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_manager())
 ):
     """
     Mark an action as completed and record outcomes.
@@ -218,7 +266,8 @@ async def complete_action(
 @router.get("/{action_id}")
 async def get_action_details(
     action_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_analyst())
 ):
     """Get detailed information about a specific action."""
     try:
