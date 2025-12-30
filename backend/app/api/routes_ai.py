@@ -157,13 +157,14 @@ async def ai_health_check():
     try:
         # Test Groq connection
         test_response = groq_client.chat_completion([
-            {"role": "user", "content": "Respond with valid JSON: {\"status\": \"ok\"}"}
+            {"role": "user", "content": "Say 'OK' if you can hear me"}
         ])
         
         return {
             "status": "healthy",
             "groq_api": "connected",
-            "model": "llama-3.1-70b-versatile"
+            "model": "llama-3.1-8b-instant",
+            "test_response": test_response["choices"][0]["message"]["content"]
         }
     except Exception as e:
         return {

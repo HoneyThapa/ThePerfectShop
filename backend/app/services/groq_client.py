@@ -21,21 +21,23 @@ class GroqClient:
     def chat_completion(
         self, 
         messages: list, 
-        model: str = "llama-3.1-70b-versatile",
+        model: str = "llama-3.1-8b-instant",
         temperature: float = 0.1,
         max_tokens: int = 2048
     ) -> Dict[str, Any]:
         """Make a chat completion request to Groq API"""
         try:
+            # Remove JSON format requirement as it may cause issues
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            
             response = self.client.post(
                 f"{self.base_url}/chat/completions",
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "response_format": {"type": "json_object"}
-                }
+                json=payload
             )
             response.raise_for_status()
             return response.json()
@@ -52,26 +54,21 @@ class GroqClient:
         system_prompt = """You are an expert supply chain analyst for retail inventory management. 
         You provide grounded insights based ONLY on the provided data. Never invent SKUs, quantities, or database fields.
         
-        Your response must be valid JSON with this exact structure:
-        {
-            "executive_summary": "Brief overview of key risks and opportunities",
-            "prioritized_actions": [
-                {
-                    "action_type": "markdown|transfer|reorder_pause|bundle|fefo_attention",
-                    "priority": "high|medium|low",
-                    "description": "What to do",
-                    "evidence": ["field1", "field2"],
-                    "confidence": 0.85,
-                    "expected_impact": "Quantified benefit estimate"
-                }
-            ],
-            "key_metrics": {
-                "total_at_risk_value": 0,
-                "high_risk_batches": 0,
-                "avg_days_to_expiry": 0
-            },
-            "assumptions": ["List key assumptions made"]
-        }"""
+        Analyze the data and provide insights in this format:
+        EXECUTIVE SUMMARY: [Brief overview of key risks and opportunities]
+        
+        TOP ACTIONS:
+        1. [Action type] - [Priority] - [Description] - [Expected impact]
+        2. [Action type] - [Priority] - [Description] - [Expected impact]
+        3. [Action type] - [Priority] - [Description] - [Expected impact]
+        
+        KEY METRICS:
+        - Total at-risk value: [value]
+        - High-risk batches: [count]
+        - Average days to expiry: [days]
+        
+        ASSUMPTIONS:
+        - [List key assumptions made]"""
         
         user_prompt = f"""Analyze this inventory risk data and provide actionable insights:
 
@@ -87,19 +84,64 @@ Focus on the highest risk items and most impactful actions. Cite specific eviden
             {"role": "user", "content": user_prompt}
         ]
         
-        response = self.chat_completion(messages)
-        content = response["choices"][0]["message"]["content"]
-        
         try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            # Fallback if JSON parsing fails
+            response = self.chat_completion(messages)
+            content = response["choices"][0]["message"]["content"]
+            
+            # Parse the structured response
+            return self._parse_insights_response(content, context_data)
+        except Exception as e:
+            # Fallback response
             return {
-                "executive_summary": "Analysis completed but response format error occurred",
+                "executive_summary": f"Analysis completed but AI parsing failed: {str(e)}",
                 "prioritized_actions": [],
-                "key_metrics": {},
-                "assumptions": ["Response parsing failed"]
+                "key_metrics": context_data.get("key_metrics", {}),
+                "assumptions": ["AI response parsing failed"]
             }
+
+    def _parse_insights_response(self, content: str, context_data: Dict) -> Dict[str, Any]:
+        """Parse the AI response into structured format"""
+        lines = content.split('\n')
+        
+        result = {
+            "executive_summary": "",
+            "prioritized_actions": [],
+            "key_metrics": context_data.get("key_metrics", {}),
+            "assumptions": []
+        }
+        
+        current_section = None
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            if line.startswith("EXECUTIVE SUMMARY:"):
+                result["executive_summary"] = line.replace("EXECUTIVE SUMMARY:", "").strip()
+                current_section = "summary"
+            elif line.startswith("TOP ACTIONS:"):
+                current_section = "actions"
+            elif line.startswith("KEY METRICS:"):
+                current_section = "metrics"
+            elif line.startswith("ASSUMPTIONS:"):
+                current_section = "assumptions"
+            elif current_section == "actions" and line.startswith(("1.", "2.", "3.", "4.", "5.")):
+                # Parse action line: "1. markdown - high - Apply 30% discount - Save $500"
+                parts = line.split(" - ", 3)
+                if len(parts) >= 3:
+                    action = {
+                        "action_type": parts[1].strip() if len(parts) > 1 else "unknown",
+                        "priority": parts[2].strip() if len(parts) > 2 else "medium",
+                        "description": parts[3].strip() if len(parts) > 3 else parts[0].strip(),
+                        "confidence": 0.8,
+                        "expected_impact": "AI-generated recommendation"
+                    }
+                    result["prioritized_actions"].append(action)
+            elif current_section == "assumptions" and line.startswith("-"):
+                result["assumptions"].append(line[1:].strip())
+        
+        return result
 
     def chat_response(self, message: str, context_data: Dict[str, Any], conversation_history: list = None) -> Dict[str, Any]:
         """Generate conversational response with context"""
@@ -111,20 +153,7 @@ Focus on the highest risk items and most impactful actions. Cite specific eviden
         - If data is missing, explicitly state this and ask for clarification
         - Never invent SKUs, quantities, or database values
         - Provide structured actions when relevant
-        
-        Response format (JSON):
-        {
-            "response": "Your conversational answer",
-            "structured_actions": [
-                {
-                    "action_type": "type",
-                    "description": "what to do",
-                    "evidence": ["field1", "field2"]
-                }
-            ],
-            "evidence_used": ["list of data fields referenced"],
-            "data_gaps": ["what information is missing"]
-        }"""
+        - Be conversational and helpful"""
         
         messages = [{"role": "system", "content": system_prompt}]
         
@@ -138,17 +167,22 @@ Available Context Data:
         
         messages.append({"role": "user", "content": user_content})
         
-        response = self.chat_completion(messages)
-        content = response["choices"][0]["message"]["content"]
-        
         try:
-            return json.loads(content)
-        except json.JSONDecodeError:
+            response = self.chat_completion(messages)
+            content = response["choices"][0]["message"]["content"]
+            
             return {
                 "response": content,
+                "structured_actions": [],  # Could be enhanced to parse actions from response
+                "evidence_used": ["AI analyzed available context data"],
+                "data_gaps": []
+            }
+        except Exception as e:
+            return {
+                "response": f"I'm sorry, I encountered an error: {str(e)}. Please try again.",
                 "structured_actions": [],
                 "evidence_used": [],
-                "data_gaps": ["Response parsing failed"]
+                "data_gaps": ["AI service temporarily unavailable"]
             }
 
 # Global client instance
