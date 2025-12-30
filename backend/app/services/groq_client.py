@@ -12,6 +12,10 @@ class GroqClient:
     def __init__(self):
         self.api_key = GROQ_API_KEY
         self.base_url = GROQ_BASE_URL
+        
+        if not self.api_key:
+            raise ValueError("GROQ_API_KEY environment variable is not set")
+            
         self.client = httpx.Client(
             headers={"Authorization": f"Bearer {self.api_key}"},
             timeout=30.0
@@ -42,12 +46,28 @@ class GroqClient:
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
+            error_msg = f"Groq API HTTP error: {e.response.status_code}"
+            try:
+                error_detail = e.response.json()
+                error_msg += f" - {error_detail.get('error', {}).get('message', 'Unknown error')}"
+            except:
+                error_msg += f" - {e.response.text}"
+            
             if e.response.status_code == 429:
                 time.sleep(2)  # Rate limit backoff
-                raise
-            raise Exception(f"Groq API error: {e.response.status_code} - {e.response.text}")
+                raise Exception(f"Rate limit exceeded: {error_msg}")
+            elif e.response.status_code == 401:
+                raise Exception("Invalid API key. Please check your GROQ_API_KEY environment variable.")
+            else:
+                raise Exception(error_msg)
+        except httpx.ConnectError as e:
+            raise Exception(f"Connection error to Groq API: {str(e)}. Check your internet connection.")
+        except httpx.TimeoutException as e:
+            raise Exception(f"Timeout error connecting to Groq API: {str(e)}. Try again later.")
         except Exception as e:
-            raise Exception(f"Groq client error: {str(e)}")
+            if "Groq" in str(e):
+                raise  # Re-raise Groq-specific errors
+            raise Exception(f"Unexpected error in Groq client: {str(e)}")
 
     def get_insights(self, context_data: Dict[str, Any], filters: Optional[Dict] = None) -> Dict[str, Any]:
         """Generate AI insights from risk context data"""
