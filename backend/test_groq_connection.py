@@ -6,7 +6,9 @@ Test Groq API connection directly
 import httpx
 import json
 
-GROQ_API_KEY = "your_groq_api_key_here"
+import os
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 def test_groq_direct():

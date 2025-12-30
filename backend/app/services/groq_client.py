@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "your_groq_api_key_here")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 class GroqClient:
