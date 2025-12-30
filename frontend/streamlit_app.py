@@ -98,43 +98,6 @@ st.markdown("""
     margin-bottom: 20px;
 }
 
-.ai-action-card {
-    background: rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 15px;
-    margin: 10px 0;
-    border-left: 4px solid #00ff88;
-}
-
-.ai-action-high { border-left-color: #ff4444; }
-.ai-action-medium { border-left-color: #ffaa00; }
-.ai-action-low { border-left-color: #00ff88; }
-
-/* Chat Interface */
-.chat-container {
-    background: rgba(0,0,0,0.4);
-    border-radius: 16px;
-    padding: 20px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.chat-message {
-    margin: 10px 0;
-    padding: 10px 15px;
-    border-radius: 12px;
-}
-
-.chat-user {
-    background: rgba(0,100,255,0.3);
-    margin-left: 20px;
-}
-
-.chat-ai {
-    background: rgba(0,200,100,0.3);
-    margin-right: 20px;
-}
-
 /* Title */
 .glass-title {
     font-family: 'Anton SC', sans-serif;
@@ -179,31 +142,7 @@ st.markdown("""
     z-index: 9999;
 }
 
-/* AI Chat button */
-.ai-chat-btn {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    z-index: 9999;
-}
-
-/* Modal */
-.modal-bg {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-}
-
-.modal-box {
-    background: white;
-    padding: 30px;
-    width: 360px;
-    border-radius: 22px;
-}
+/* Remove problematic modal and chat styles that cause issues */
 </style>
 """, unsafe_allow_html=True)
 
@@ -223,7 +162,17 @@ def get_ai_insights(snapshot_date: date = None, store_id: str = None, sku_id: st
         if response.status_code == 200:
             return response.json()
         else:
-            return {"error": f"API error: {response.status_code}"}
+            error_detail = "Unknown error"
+            try:
+                error_data = response.json()
+                error_detail = error_data.get("detail", f"HTTP {response.status_code}")
+            except:
+                error_detail = f"HTTP {response.status_code}: {response.text[:100]}"
+            return {"error": f"API error: {error_detail}"}
+    except requests.exceptions.Timeout:
+        return {"error": "Request timed out. Please try again."}
+    except requests.exceptions.ConnectionError:
+        return {"error": "Cannot connect to AI service. Please check if the backend is running."}
     except Exception as e:
         return {"error": f"Connection error: {str(e)}"}
 
@@ -240,7 +189,17 @@ def send_chat_message(message: str, store_id: str = None, sku_id: str = None) ->
         if response.status_code == 200:
             return response.json()
         else:
-            return {"error": f"API error: {response.status_code}"}
+            error_detail = "Unknown error"
+            try:
+                error_data = response.json()
+                error_detail = error_data.get("detail", f"HTTP {response.status_code}")
+            except:
+                error_detail = f"HTTP {response.status_code}: {response.text[:100]}"
+            return {"error": f"API error: {error_detail}"}
+    except requests.exceptions.Timeout:
+        return {"error": "Request timed out. Please try again."}
+    except requests.exceptions.ConnectionError:
+        return {"error": "Cannot connect to AI service. Please check if the backend is running."}
     except Exception as e:
         return {"error": f"Connection error: {str(e)}"}
 
@@ -293,54 +252,102 @@ def update_user_preferences(preferences: Dict[str, str]) -> bool:
 def render_ai_insights_panel():
     """Render AI insights panel"""
     if st.session_state.ai_insights is None:
-        if st.button("🤖 Get AI Insights", key="get_insights"):
-            with st.spinner("Analyzing inventory data..."):
-                insights = get_ai_insights(snapshot_date=date.today())
-                if "error" not in insights:
-                    st.session_state.ai_insights = insights
-                    # Show action popup automatically
-                    st.session_state.show_action_popup = True
-                    st.rerun()
-                else:
-                    st.error(f"AI service unavailable: {insights['error']}")
+        # Create a nice call-to-action
+        st.markdown("""
+        <div class="ai-insights-panel">
+            <h3 style="color: white; margin-top: 0;">🤖 AI Operations Copilot</h3>
+            <p style="color: white; opacity: 0.9;">Get AI-powered insights and action recommendations for your inventory</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("🤖 Get AI Insights", key="get_insights", type="primary", use_container_width=True):
+                with st.spinner("🧠 AI is analyzing your inventory data..."):
+                    insights = get_ai_insights(snapshot_date=date.today())
+                    if "error" not in insights:
+                        st.session_state.ai_insights = insights
+                        # Show action popup automatically
+                        st.session_state.show_action_popup = True
+                        st.success("✅ AI analysis complete! Review actions below.")
+                        st.rerun()
+                    else:
+                        st.error(f"❌ AI service unavailable: {insights['error']}")
         return
     
     insights = st.session_state.ai_insights
     
+    # Header
     st.markdown("""
     <div class="ai-insights-panel">
-        <h3 style="color: white; margin-top: 0;">🤖 AI Operations Copilot</h3>
+        <h3 style="color: white; margin-top: 0;">🤖 AI Operations Copilot - Analysis Complete</h3>
     </div>
     """, unsafe_allow_html=True)
     
-    # Executive Summary
+    # Executive Summary in an info box
     if "executive_summary" in insights:
-        st.markdown(f"**Executive Summary:** {insights['executive_summary']}")
+        st.info(f"**🎯 Executive Summary:** {insights['executive_summary']}")
     
-    # Key Metrics
+    # Key Metrics in columns
     if "key_metrics" in insights:
+        st.markdown("### 📊 Key Metrics")
         metrics = insights["key_metrics"]
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
+        
         with col1:
-            st.metric("At Risk Value", f"${metrics.get('total_at_risk_value', 0):,.2f}")
+            st.metric(
+                "At Risk Value", 
+                f"${metrics.get('total_at_risk_value', 0):,.0f}",
+                help="Total value of inventory at risk of expiring"
+            )
         with col2:
-            st.metric("High Risk Batches", metrics.get('high_risk_batches', 0))
+            st.metric(
+                "High Risk Batches", 
+                metrics.get('high_risk_batches', 0),
+                help="Number of batches with high expiry risk"
+            )
         with col3:
-            st.metric("Avg Days to Expiry", f"{metrics.get('avg_days_to_expiry', 0):.1f}")
+            st.metric(
+                "Medium Risk Batches", 
+                metrics.get('medium_risk_batches', 0),
+                help="Number of batches with medium expiry risk"
+            )
+        with col4:
+            avg_days = metrics.get('avg_days_to_expiry', 0)
+            st.metric(
+                "Avg Days to Expiry", 
+                f"{avg_days:.0f}",
+                help="Average days until expiry across all batches",
+                delta=None if avg_days >= 0 else "⚠️ Past expiry"
+            )
     
     # Action Summary Button
     if "prioritized_actions" in insights and insights["prioritized_actions"]:
         action_count = len(insights["prioritized_actions"])
-        if st.button(f"📋 {action_count} Actions Needed - Click to Review", key="show_actions", type="primary"):
-            st.session_state.show_action_popup = True
-            st.rerun()
+        st.markdown("### 🎯 Action Recommendations")
+        
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.markdown(f"**{action_count} actions identified** based on your inventory analysis")
+        with col2:
+            if st.button(f"📋 Review {action_count} Actions", key="show_actions", type="primary", use_container_width=True):
+                st.session_state.show_action_popup = True
+                st.rerun()
     
-    if st.button("🔄 Refresh Insights", key="refresh_insights"):
-        st.session_state.ai_insights = None
-        st.rerun()
+    # Control buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 Refresh Analysis", key="refresh_insights", use_container_width=True):
+            st.session_state.ai_insights = None
+            st.session_state.show_action_popup = False
+            st.rerun()
+    with col2:
+        if st.button("📊 View Detailed Actions", key="toggle_actions", use_container_width=True):
+            st.session_state.show_action_popup = not st.session_state.get("show_action_popup", False)
+            st.rerun()
 
 def render_action_popup():
-    """Render action popup modal"""
+    """Render action recommendations using Streamlit native components"""
     if not st.session_state.get("show_action_popup", False):
         return
     
@@ -350,87 +357,123 @@ def render_action_popup():
     
     actions = insights["prioritized_actions"]
     
-    # Create modal-like container
-    st.markdown("""
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                background: rgba(0,0,0,0.7); z-index: 1000; display: flex; 
-                align-items: center; justify-content: center;">
-        <div style="background: white; padding: 30px; border-radius: 15px; 
-                    max-width: 800px; max-height: 80vh; overflow-y: auto; margin: 20px;">
-    """, unsafe_allow_html=True)
-    
-    st.markdown("# 🎯 Recommended Actions")
-    st.markdown(f"**{len(actions)} actions identified** - Please review each recommendation:")
+    # Use Streamlit's native container instead of HTML modal
+    st.markdown("---")
+    st.markdown("## 🎯 Action Recommendations Review")
+    st.info(f"**{len(actions)} actions identified** - Please review each recommendation below:")
     
     # Initialize action responses if not exists
     if "action_responses" not in st.session_state:
         st.session_state.action_responses = {}
     
-    for i, action in enumerate(actions):
-        with st.expander(f"Action {i+1}: {action.get('action_type', 'Unknown').title()} - {action.get('priority', 'medium').title()} Priority", expanded=True):
-            st.markdown(f"**Description:** {action.get('description', 'No description')}")
-            st.markdown(f"**Expected Impact:** {action.get('expected_impact', 'Unknown impact')}")
-            st.markdown(f"**Confidence:** {action.get('confidence', 0.5)*100:.0f}%")
-            
-            # Action buttons
-            col1, col2, col3 = st.columns([1, 1, 2])
-            
-            action_key = f"action_{i}"
-            
-            with col1:
-                if st.button("✅ Will Consider", key=f"consider_{i}"):
-                    st.session_state.action_responses[action_key] = "will_consider"
-                    # Record feedback
-                    record_feedback(
-                        f"action_{i}_{date.today().isoformat()}",
-                        "accepted",
-                        f"popup_action_{i}",
-                        action.get('action_type', 'unknown'),
-                        action.get('parameters', {}),
-                        action.get('confidence', 0.5)
-                    )
-                    st.success("✅ Marked as 'Will Consider'")
-            
-            with col2:
-                if st.button("❌ Reject", key=f"reject_{i}"):
-                    st.session_state.action_responses[action_key] = "rejected"
-                    # Record feedback
-                    record_feedback(
-                        f"action_{i}_{date.today().isoformat()}",
-                        "rejected",
-                        f"popup_action_{i}",
-                        action.get('action_type', 'unknown'),
-                        action.get('parameters', {}),
-                        action.get('confidence', 0.5)
-                    )
-                    st.error("❌ Marked as 'Rejected'")
-            
-            # Show current status
-            current_response = st.session_state.action_responses.get(action_key)
-            if current_response:
-                status_color = "green" if current_response == "will_consider" else "red"
-                status_text = "Will Consider" if current_response == "will_consider" else "Rejected"
-                st.markdown(f"<span style='color: {status_color}; font-weight: bold;'>Status: {status_text}</span>", unsafe_allow_html=True)
+    # Create tabs for better organization
+    if len(actions) > 3:
+        # Use tabs for many actions
+        tab_names = [f"Action {i+1}" for i in range(min(len(actions), 5))]
+        tabs = st.tabs(tab_names)
+        
+        for i, (tab, action) in enumerate(zip(tabs, actions[:5])):
+            with tab:
+                render_single_action(i, action)
+    else:
+        # Use columns for few actions
+        cols = st.columns(min(len(actions), 3))
+        for i, (col, action) in enumerate(zip(cols, actions)):
+            with col:
+                render_single_action(i, action)
     
-    # Close button
-    col1, col2, col3 = st.columns([1, 1, 1])
+    # Show remaining actions in expanders if more than 5
+    if len(actions) > 5:
+        st.markdown("### Additional Actions")
+        for i, action in enumerate(actions[5:], start=5):
+            with st.expander(f"Action {i+1}: {action.get('action_type', 'Unknown').title()}", expanded=False):
+                render_single_action(i, action)
+    
+    # Control buttons
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("Close Actions Review", key="close_popup", type="primary"):
+        if st.button("✅ Close Actions Review", key="close_popup", type="primary", use_container_width=True):
             st.session_state.show_action_popup = False
             st.rerun()
+
+def render_single_action(index: int, action: dict):
+    """Render a single action recommendation"""
+    action_key = f"action_{index}"
     
-    st.markdown("</div></div>", unsafe_allow_html=True)
+    # Action details
+    st.markdown(f"**{action.get('action_type', 'Unknown').title()}**")
+    st.markdown(f"*{action.get('priority', 'medium').title()} Priority*")
+    
+    # Priority color indicator
+    priority = action.get('priority', 'medium')
+    if priority == 'high':
+        st.error(f"🔴 High Priority Action")
+    elif priority == 'medium':
+        st.warning(f"🟡 Medium Priority Action")
+    else:
+        st.success(f"🟢 Low Priority Action")
+    
+    st.markdown(f"**Description:** {action.get('description', 'No description')}")
+    st.markdown(f"**Expected Impact:** {action.get('expected_impact', 'Unknown impact')}")
+    
+    # Confidence bar
+    confidence = action.get('confidence', 0.5)
+    st.progress(confidence, text=f"Confidence: {confidence*100:.0f}%")
+    
+    # Action buttons
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("✅ Will Consider", key=f"consider_{index}", use_container_width=True):
+            st.session_state.action_responses[action_key] = "will_consider"
+            # Record feedback
+            record_feedback(
+                f"action_{index}_{date.today().isoformat()}",
+                "accepted",
+                f"popup_action_{index}",
+                action.get('action_type', 'unknown'),
+                action.get('parameters', {}),
+                action.get('confidence', 0.5)
+            )
+            st.success("✅ Marked as 'Will Consider'")
+            st.rerun()
+    
+    with col2:
+        if st.button("❌ Reject", key=f"reject_{index}", use_container_width=True):
+            st.session_state.action_responses[action_key] = "rejected"
+            # Record feedback
+            record_feedback(
+                f"action_{index}_{date.today().isoformat()}",
+                "rejected",
+                f"popup_action_{index}",
+                action.get('action_type', 'unknown'),
+                action.get('parameters', {}),
+                action.get('confidence', 0.5)
+            )
+            st.error("❌ Marked as 'Rejected'")
+            st.rerun()
+    
+    # Show current status
+    current_response = st.session_state.action_responses.get(action_key)
+    if current_response:
+        if current_response == "will_consider":
+            st.success("Status: ✅ Will Consider")
+        else:
+            st.error("Status: ❌ Rejected")
+    
+    st.markdown("---")
 
 def render_ai_chat():
     """Render AI chat interface"""
     if not st.session_state.show_ai_chat:
         return
     
+    st.markdown("---")
     st.markdown("### 💬 AI Assistant")
     
     # Initialize chat with hello message if empty
     if not st.session_state.chat_messages:
-        with st.spinner("AI Assistant is connecting..."):
+        with st.spinner("🤖 AI Assistant is connecting..."):
             hello_response = send_chat_message("Hello! Please introduce yourself and tell me how you can help with inventory management.")
             if "error" not in hello_response:
                 st.session_state.chat_messages.append({
@@ -443,27 +486,91 @@ def render_ai_chat():
                     "content": "Hello! I'm your AI inventory assistant. I can help you analyze risk data, understand inventory patterns, and suggest actions to optimize your operations. What would you like to know?"
                 })
     
-    # Chat history
-    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for msg in st.session_state.chat_messages:
-        if msg["role"] == "user":
-            st.markdown(f'<div class="chat-message chat-user">You: {msg["content"]}</div>', unsafe_allow_html=True)
-        else:
-            st.markdown(f'<div class="chat-message chat-ai">AI: {msg["content"]}</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Chat history in a container with better styling
+    chat_container = st.container()
+    with chat_container:
+        for i, msg in enumerate(st.session_state.chat_messages):
+            if msg["role"] == "user":
+                # User message - right aligned
+                st.markdown(f"""
+                <div style="text-align: right; margin: 10px 0;">
+                    <div style="display: inline-block; background: #0066cc; color: white; 
+                                padding: 10px 15px; border-radius: 15px 15px 5px 15px; 
+                                max-width: 70%; text-align: left;">
+                        <strong>You:</strong> {msg["content"]}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # AI message - left aligned
+                st.markdown(f"""
+                <div style="text-align: left; margin: 10px 0;">
+                    <div style="display: inline-block; background: #f0f2f6; color: #333; 
+                                padding: 10px 15px; border-radius: 15px 15px 15px 5px; 
+                                max-width: 70%; text-align: left; border-left: 4px solid #00cc88;">
+                        <strong>🤖 AI:</strong> {msg["content"]}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
     
-    # Chat input
-    user_input = st.text_input("Ask about your inventory...", key="chat_input")
+    # Chat input section
+    st.markdown("---")
     
-    col1, col2 = st.columns([1, 4])
+    # Quick action buttons
+    st.markdown("**Quick Questions:**")
+    col1, col2, col3 = st.columns(3)
+    
     with col1:
-        if st.button("Send", key="send_chat"):
+        if st.button("❓ Top Risks", key="quick_risks"):
+            quick_message = "What are the top 3 risks I should focus on?"
+            st.session_state.chat_messages.append({"role": "user", "content": quick_message})
+            with st.spinner("🤖 AI is thinking..."):
+                response = send_chat_message(quick_message)
+                if "error" not in response:
+                    ai_response = response.get("response", "I couldn't process that request.")
+                    st.session_state.chat_messages.append({"role": "ai", "content": ai_response})
+                else:
+                    st.session_state.chat_messages.append({"role": "ai", "content": f"Error: {response['error']}"})
+            st.rerun()
+    
+    with col2:
+        if st.button("💰 Reduce Waste", key="quick_waste"):
+            quick_message = "How can I reduce waste in my inventory?"
+            st.session_state.chat_messages.append({"role": "user", "content": quick_message})
+            with st.spinner("🤖 AI is thinking..."):
+                response = send_chat_message(quick_message)
+                if "error" not in response:
+                    ai_response = response.get("response", "I couldn't process that request.")
+                    st.session_state.chat_messages.append({"role": "ai", "content": ai_response})
+                else:
+                    st.session_state.chat_messages.append({"role": "ai", "content": f"Error: {response['error']}"})
+            st.rerun()
+    
+    with col3:
+        if st.button("📊 Explain Metrics", key="quick_metrics"):
+            quick_message = "Can you explain what the key metrics mean?"
+            st.session_state.chat_messages.append({"role": "user", "content": quick_message})
+            with st.spinner("🤖 AI is thinking..."):
+                response = send_chat_message(quick_message)
+                if "error" not in response:
+                    ai_response = response.get("response", "I couldn't process that request.")
+                    st.session_state.chat_messages.append({"role": "ai", "content": ai_response})
+                else:
+                    st.session_state.chat_messages.append({"role": "ai", "content": f"Error: {response['error']}"})
+            st.rerun()
+    
+    # Text input for custom questions
+    user_input = st.text_input("💬 Ask me anything about your inventory...", key="chat_input", placeholder="Type your question here...")
+    
+    col1, col2, col3 = st.columns([1, 1, 2])
+    with col1:
+        if st.button("Send 📤", key="send_chat", type="primary", use_container_width=True):
             if user_input:
                 # Add user message
                 st.session_state.chat_messages.append({"role": "user", "content": user_input})
                 
                 # Get AI response
-                with st.spinner("AI is thinking..."):
+                with st.spinner("🤖 AI is thinking..."):
                     response = send_chat_message(user_input)
                     if "error" not in response:
                         ai_response = response.get("response", "I couldn't process that request.")
@@ -472,10 +579,13 @@ def render_ai_chat():
                         st.session_state.chat_messages.append({"role": "ai", "content": f"Error: {response['error']}"})
                 
                 st.rerun()
+            else:
+                st.warning("Please enter a message first!")
     
     with col2:
-        if st.button("Clear Chat", key="clear_chat"):
+        if st.button("Clear Chat 🗑️", key="clear_chat", use_container_width=True):
             st.session_state.chat_messages = []
+            st.success("Chat cleared!")
             st.rerun()
 
 def render_preferences_panel():
@@ -572,14 +682,20 @@ def page_risk_action():
 
     df = st.session_state.uploaded_df
     if df is None:
-        st.warning("Upload CSV first.")
+        st.warning("⚠️ Please upload CSV data first to see AI insights and risk analysis.")
+        st.info("👆 Use the file uploader in the sidebar to get started!")
         return
 
     # AI Insights Panel at the top
     render_ai_insights_panel()
     
-    # Render action popup if needed
-    render_action_popup()
+    # Render action recommendations if popup is enabled
+    if st.session_state.get("show_action_popup", False):
+        render_action_popup()
+
+    # Data visualization section
+    st.markdown("---")
+    st.markdown("## 📊 Risk & Action Analysis")
 
     # Mock data for demo (in real app, this would come from API)
     risk_list = df.head(10).copy()
@@ -592,34 +708,46 @@ def page_risk_action():
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown('<div class="glass-box-sm"><h3 style="color:white;margin:0;">⚠️ Risk List</h3></div>', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-chip">🔥 High Risk Items: 6</div>', unsafe_allow_html=True)
-        st.dataframe(risk_list, use_container_width=True)
-        st.download_button("📤 Export Risk List", risk_list.to_csv(index=False), "risk_list.csv")
+        st.markdown("### ⚠️ Risk List")
+        st.markdown("🔥 **High Risk Items:** 6 items need immediate attention")
+        st.dataframe(risk_list, use_container_width=True, height=300)
+        st.download_button("📤 Export Risk List", risk_list.to_csv(index=False), "risk_list.csv", use_container_width=True)
 
     with col2:
-        st.markdown('<div class="glass-box-sm"><h3 style="color:white;margin:0;">🛠️ Action List</h3></div>', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-chip">💰 Est. Savings: ₹3,000</div>', unsafe_allow_html=True)
-        st.dataframe(action_list, use_container_width=True)
-        st.download_button("📤 Export Action List", action_list.to_csv(index=False), "action_list.csv")
+        st.markdown("### 🛠️ Action List")
+        st.markdown("💰 **Estimated Savings:** ₹3,000 potential recovery")
+        st.dataframe(action_list, use_container_width=True, height=300)
+        st.download_button("📤 Export Action List", action_list.to_csv(index=False), "action_list.csv", use_container_width=True)
 
     # AI Chat Interface
     if st.session_state.show_ai_chat:
         render_ai_chat()
 
-    if st.button("➡️ Next: Dashboard"):
-        st.session_state.page = 3
-        st.rerun()
+    # Navigation
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("➡️ Next: Dashboard", key="next_dashboard", type="primary", use_container_width=True):
+            st.session_state.page = 3
+            st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # AI Chat button
-    with st.container():
-        st.markdown('<div class="ai-chat-btn">', unsafe_allow_html=True)
-        if st.button("💬 AI Chat"):
-            st.session_state.show_ai_chat = not st.session_state.show_ai_chat
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    # AI Chat toggle button - better positioned
+    if not st.session_state.show_ai_chat:
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("💬 Open AI Chat Assistant", key="open_chat", use_container_width=True):
+                st.session_state.show_ai_chat = True
+                st.rerun()
+    else:
+        # Close chat button
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("❌ Close AI Chat", key="close_chat", use_container_width=True):
+                st.session_state.show_ai_chat = False
+                st.rerun()
 
 # --------------------------------------------------
 # PAGE 3 — AI-Enhanced Dashboard
