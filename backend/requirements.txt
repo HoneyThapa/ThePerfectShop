@@ -9,3 +9,14 @@ pydantic
 openpyxl
 pytest
 hypothesis
+alembic
+python-json-logger
+python-jose[cryptography]
+passlib[bcrypt]
+apscheduler
+redis
+prometheus_client
+psutil
+streamlit
+plotly
+requests

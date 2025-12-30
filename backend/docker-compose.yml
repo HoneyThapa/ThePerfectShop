@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: theperfectshop-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-theperfectshop}
+      POSTGRES_USER: ${POSTGRES_USER:-theperfectshop}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-theperfectshop123}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-theperfectshop}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - theperfectshop-network
+
+  # Redis for caching and job queues
+  redis:
+    image: redis:7-alpine
+    container_name: theperfectshop-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - theperfectshop-network
+
+  # ThePerfectShop Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: theperfectshop-api
+    environment:
+      # Database configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-theperfectshop}:${POSTGRES_PASSWORD:-theperfectshop123}@postgres:5432/${POSTGRES_DB:-theperfectshop}
+      
+      # Redis configuration
+      REDIS_URL: redis://redis:6379/0
+      
+      # Application configuration
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      
+      # Environment
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-true}
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      
+      # File upload limits
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-100}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
+      
+      # Rate limiting
+      RATE_LIMIT_REQUESTS_PER_MINUTE: ${RATE_LIMIT_REQUESTS_PER_MINUTE:-100}
+      RATE_LIMIT_REQUESTS_PER_HOUR: ${RATE_LIMIT_REQUESTS_PER_HOUR:-1000}
+      
+      # Job scheduling
+      ENABLE_SCHEDULED_JOBS: ${ENABLE_SCHEDULED_JOBS:-true}
+      JOB_TIMEZONE: ${JOB_TIMEZONE:-UTC}
+      
+      # Monitoring
+      ENABLE_METRICS: ${ENABLE_METRICS:-true}
+      METRICS_PORT: ${METRICS_PORT:-9090}
+    ports:
+      - "${API_PORT:-8000}:8000"
+      - "${METRICS_PORT:-9090}:9090"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - theperfectshop-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  theperfectshop-network:
+    driver: bridge
