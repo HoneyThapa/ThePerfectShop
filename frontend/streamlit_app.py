@@ -49,10 +49,10 @@ if "login_error" not in st.session_state:
 # Backend API base URL
 API_BASE = "http://localhost:8000"
 
-BG_URL = "https://eu-images.contentstack.com/v3/assets/blt58a1f8f560a1ab0e/bltfedad5432e37a8b8/669f14c173512f96edb058a3/The_20Fresh_20Market-2nd_20Carmel_20IN_20store-grand_20opening-produce_20dept.jpg"
+BG_URL = "https://i.ibb.co/35WWgQPX/Untitled-1.png"
 
 # --------------------------------------------------
-# CSS (reliable background + blur via body::before)
+# CSS (FIXED background layering + visible low-brightness)
 # --------------------------------------------------
 st.markdown(
     f"""
@@ -67,17 +67,24 @@ st.markdown(
     margin-left: 0 !important;
 }}
 
-/* -----------------------------
-   Background + blur (reliable)
-   Use body pseudo-elements, not .stApp
------------------------------- */
+/* =============================
+   BACKGROUND (RELIABLE + VISIBLE)
+   Key fixes:
+   - DO NOT paint html/body solid black (it hides negative z-index layers)
+   - Put bg layers at z-index 0/1
+   - Put Streamlit container above at z-index 2
+============================= */
 html, body {{
     height: 100%;
-    background: #000 !important; /* fallback */
+    background: transparent !important;   /* IMPORTANT */
 }}
 
 .stApp {{
     background: transparent !important;
+}}
+
+body {{
+    position: relative;
 }}
 
 /* Background image layer */
@@ -85,13 +92,14 @@ body::before {{
     content: "";
     position: fixed;
     inset: 0;
-    z-index: -3;
-    background-image: url("https://eu-images.contentstack.com/v3/assets/blt58a1f8f560a1ab0e/bltfedad5432e37a8b8/669f14c173512f96edb058a3/The_20Fresh_20Market-2nd_20Carmel_20IN_20store-grand_20opening-produce_20dept.jpg");
+    z-index: 0;                /* NOT negative */
+    background-image: url("{BG_URL}");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     transform: scale(1.03);
-    filter: none; /* default = clean */
+    filter: none;              /* default = clean */
+    pointer-events: none;
 }}
 
 /* Overlay tint layer */
@@ -99,34 +107,38 @@ body::after {{
     content: "";
     position: fixed;
     inset: 0;
-    z-index: -2;
+    z-index: 1;                /* above image, below app */
     background: rgba(0,0,0,0.0);
+    pointer-events: none;      /* never block clicks */
 }}
 
-/* CSV confirmed: dim slightly on home */
-body.uploaded.tab-home::before {{ filter: brightness(0.60); }}
-body.uploaded.tab-home::after  {{ background: rgba(0,0,0,0.25); }}
-
-/* Any tab other than Home: blur + dark */
-body.tab-inner::before {{ filter: blur(14px) brightness(0.35); }}
-body.tab-inner::after  {{ background: rgba(0,0,0,0.55); }}
-
-/* If CSV confirmed AND not Home: stronger dim */
-body.uploaded.tab-inner::before {{ filter: blur(14px) brightness(0.28); }}
-body.uploaded.tab-inner::after  {{ background: rgba(0,0,0,0.62); }}
-
-/* Keep Streamlit content above overlays */
+/* Ensure Streamlit content is above bg layers */
 [data-testid="stAppViewContainer"] {{
     position: relative;
-    z-index: 1;
+    z-index: 2;
+    background: transparent !important;
 }}
 
 /* -----------------------------
-   Permanent left panel (card)
-   We cannot wrap Streamlit widgets inside a div, so:
-   - insert a marker
-   - style the column container that "has" the marker
+   Blur/dim logic (tuned to be
+   LOW brightness BUT VISIBLE)
 ------------------------------ */
+
+/* CSV confirmed: dim slightly on home */
+body.uploaded.tab-home::before {{ filter: brightness(0.72); }}
+body.uploaded.tab-home::after  {{ background: rgba(0,0,0,0.18); }}
+
+/* Any tab other than Home: blur + dark (but still visible) */
+body.tab-inner::before {{ filter: blur(12px) brightness(0.56); }}
+body.tab-inner::after  {{ background: rgba(0,0,0,0.26); }}
+
+/* If CSV confirmed AND not Home: slightly stronger */
+body.uploaded.tab-inner::before {{ filter: blur(12px) brightness(0.50); }}
+body.uploaded.tab-inner::after  {{ background: rgba(0,0,0,0.33); }}
+
+/* =============================
+   Permanent left panel (card)
+============================= */
 .left-panel-marker {{ display: none !important; }}
 
 /* The left column becomes the panel "card" */
@@ -141,6 +153,8 @@ div[data-testid="column"]:has(.left-panel-marker) {{
     overflow-x: hidden;
 
     padding: 18px 14px;
+
+    /* Stronger black card with rounded corners */
     background: rgba(0,0,0,0.92);
     backdrop-filter: blur(18px);
 
@@ -316,14 +330,12 @@ def sync_uploaded_class():
 # --------------------------------------------------
 def get_ai_insights(snapshot_date: date = None, store_id: str = None, sku_id: str = None) -> Dict[str, Any]:
     try:
-        # Get inventory data from session state
         inventory_data = []
         if st.session_state.uploaded_df is not None:
-            # Convert DataFrame to list of dictionaries
             inventory_data = st.session_state.uploaded_df.to_dict('records')
-        
+
         payload = {
-            "inventory_data": inventory_data,  # Include actual inventory data
+            "inventory_data": inventory_data,
             "snapshot_date": snapshot_date.isoformat() if snapshot_date else None,
             "store_id": store_id,
             "sku_id": sku_id,
@@ -339,15 +351,13 @@ def get_ai_insights(snapshot_date: date = None, store_id: str = None, sku_id: st
 
 def send_chat_message(message: str, store_id: str = None, sku_id: str = None) -> Dict[str, Any]:
     try:
-        # Get inventory data from session state
         inventory_data = []
         if st.session_state.uploaded_df is not None:
-            # Convert DataFrame to list of dictionaries
             inventory_data = st.session_state.uploaded_df.to_dict('records')
-        
+
         payload = {
             "message": message,
-            "inventory_data": inventory_data,  # Include actual inventory data
+            "inventory_data": inventory_data,
             "store_id": store_id,
             "sku_id": sku_id,
             "snapshot_date": date.today().isoformat(),
@@ -361,13 +371,12 @@ def send_chat_message(message: str, store_id: str = None, sku_id: str = None) ->
 
 
 def send_action_feedback(action: Dict[str, Any], feedback_type: str) -> Dict[str, Any]:
-    """Send user feedback for an action recommendation"""
     try:
         payload = {
             "action_type": action.get("action_type", "unknown"),
             "action_parameters": action.get("action_parameters", {}),
             "risk_score": action.get("confidence", 0.5),
-            "context_hash": "frontend_generated",  # Simple hash for frontend actions
+            "context_hash": "frontend_generated",
             "feedback_type": feedback_type,  # "will_consider" or "reject"
             "user_notes": f"User {feedback_type} this recommendation"
         }
@@ -404,7 +413,6 @@ def update_user_preferences(preferences: Dict[str, str]) -> bool:
 # Permanent Left Panel
 # --------------------------------------------------
 def render_left_panel():
-    # Marker: CSS styles the entire column that contains this marker
     st.markdown('<div class="left-panel-marker"></div>', unsafe_allow_html=True)
 
     st.markdown("### 📂 Upload Data")
@@ -595,11 +603,9 @@ def render_ai_insights_tab():
                         st.error(f"❌ AI service error: {insights['error']}")
     else:
         insights = st.session_state.ai_insights
-        
-        # Executive Summary
+
         st.info(f"**🎯 Executive Summary:** {insights.get('executive_summary', 'Analysis completed.')}")
-        
-        # Key Metrics
+
         metrics = insights.get('key_metrics', {})
         if metrics:
             col1, col2, col3, col4 = st.columns(4)
@@ -611,14 +617,13 @@ def render_ai_insights_tab():
                 st.metric("🔴 High Risk Batches", metrics.get('high_risk_batches', 0))
             with col4:
                 st.metric("📅 Avg Days to Expiry", f"{metrics.get('avg_days_to_expiry', 0):.1f}")
-        
-        # Action Recommendations
+
         actions = insights.get('prioritized_actions', [])
         if actions:
             st.markdown("### 🎯 Recommended Actions")
             st.markdown("*Review and provide feedback on AI recommendations*")
-            
-            for i, action in enumerate(actions[:5]):  # Show top 5 actions
+
+            for i, action in enumerate(actions[:5]):
                 with st.container():
                     st.markdown(f"""
                     <div style="
@@ -630,16 +635,15 @@ def render_ai_insights_tab():
                         backdrop-filter: blur(10px);
                     ">
                     """, unsafe_allow_html=True)
-                    
+
                     col1, col2 = st.columns([3, 1])
-                    
+
                     with col1:
                         action_type = action.get('action_type', 'Unknown').upper()
                         description = action.get('description', 'No description available')
                         confidence = action.get('confidence', 0.5)
                         expected_impact = action.get('expected_impact', 'Unknown impact')
-                        
-                        # Action type badge
+
                         if action_type == 'MARKDOWN':
                             badge_color = "#ff6b6b"
                             icon = "🏷️"
@@ -652,7 +656,7 @@ def render_ai_insights_tab():
                         else:
                             badge_color = "#96ceb4"
                             icon = "⚡"
-                        
+
                         st.markdown(f"""
                         <div style="margin-bottom: 8px;">
                             <span style="
@@ -673,37 +677,33 @@ def render_ai_insights_tab():
                             ">Confidence: {confidence:.0%}</span>
                         </div>
                         """, unsafe_allow_html=True)
-                        
+
                         st.markdown(f"**Description:** {description}")
                         st.markdown(f"**Expected Impact:** {expected_impact}")
-                    
+
                     with col2:
-                        # Action buttons
                         col_consider, col_reject = st.columns(2)
-                        
+
                         with col_consider:
                             if st.button("✅ Will Consider", key=f"consider_{i}", use_container_width=True):
-                                # Send feedback to backend
                                 feedback_result = send_action_feedback(action, "will_consider")
                                 if feedback_result.get("success"):
                                     st.success("✅ Feedback recorded!")
                                 else:
                                     st.error("❌ Failed to record feedback")
                                 st.rerun()
-                        
+
                         with col_reject:
                             if st.button("❌ Reject", key=f"reject_{i}", use_container_width=True):
-                                # Send feedback to backend
                                 feedback_result = send_action_feedback(action, "reject")
                                 if feedback_result.get("success"):
                                     st.success("✅ Feedback recorded!")
                                 else:
                                     st.error("❌ Failed to record feedback")
                                 st.rerun()
-                    
+
                     st.markdown("</div>", unsafe_allow_html=True)
-        
-        # Refresh button
+
         if st.button("🔄 Refresh Analysis", use_container_width=True):
             st.session_state.ai_insights = None
             st.rerun()
@@ -905,23 +905,19 @@ def render_login_page():
 # Main
 # --------------------------------------------------
 def main():
-    # Apply background classes every run
     sync_uploaded_class()
     sync_tab_overlay_class()
 
-    # Permanent 2-column layout: left panel + content
     left_col, main_col = st.columns([0.26, 0.74], gap="small")
 
     with left_col:
         render_left_panel()
 
     with main_col:
-        # If user clicked Login: replace main content with login page
         if (not st.session_state.logged_in) and st.session_state.show_login:
             render_login_page()
             return
 
-        # Normal routing
         if st.session_state.current_tab == "home":
             render_home_tab()
         elif st.session_state.current_tab == "dashboard":
@@ -935,7 +931,6 @@ def main():
         elif st.session_state.current_tab == "profile":
             render_profile_tab()
 
-    # Login button (bottom-left) — unchanged behavior
     if not st.session_state.logged_in:
         st.markdown(
             """
