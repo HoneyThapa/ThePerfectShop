@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\api\routes_risk.py
+# hypothesis_version: 6.148.8
+
+[50.0, 100, 400, 500, 1000, '/', '/refresh', '/risk', '/summary', '2024-01-15', 'STORE001', 'at_risk_units', 'at_risk_value', 'avg_risk_score', 'batch_id', 'category', 'days_to_expiry', 'force_recalculation', 'high_risk_batches', 'low_risk_batches', 'medium_risk_batches', 'risk', 'risk_score', 'sku_id', 'snapshot_date', 'store', 'store_id', 'success', 'total_at_risk_value', 'total_batches']

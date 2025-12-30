@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\versioning.py
+# hypothesis_version: 6.148.8
+
+[2024, '.', '/', '/v?(\\d+\\.\\d+)/', '/version', '/{version}', '1.0', '1.1', '2.0', '; ', 'API-Latest-Version', 'API-Migration-Guide', 'API-Version', 'API-Version header', 'Accept-Version', 'Advanced analytics', 'Enhanced pagination', 'GraphQL support', 'Initial API release', 'Multi-tenant support', 'Success', 'api_version', 'current', 'current_version', 'default_version', 'deprecated', 'error', 'http', 'metadata', 'methods', 'precedence', 'sunset', 'supported', 'supported_versions', 'version-info', 'version_selection']

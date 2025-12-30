@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\api\routes_upload.py
+# hypothesis_version: 6.148.8
+
+[0.0, 400, 404, 500, '.csv', '.xlsx', '/', '/upload', '/{upload_id}/report', '/{upload_id}/status', 'COMPLETED', 'FAILED', 'PROCESSING', 'Upload not found', 'batch_id', 'csv', 'date', 'error', 'error_report', 'expiry_date', 'file_name', 'file_type', 'inventory', 'purchases', 'records_processed', 'sales', 'sku_id', 'snapshot_date', 'status', 'store_id', 'unit_cost', 'units_sold', 'upload', 'upload_id', 'upload_record', 'uploaded_at', 'validation_errors', 'xlsx']

@@ -2,7 +2,7 @@
 Middleware for the ExpiryShield backend.
 
 This module provides middleware for request/response logging,
-performance monitoring, and security features.
+performance monitoring, security features, and metrics collection.
 """
 
 import time
@@ -11,6 +11,7 @@ from typing import Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.logging_config import get_logger, log_performance_metric, log_security_event, log_authentication_event
+from app.monitoring import metrics
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -30,6 +31,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Start timing
         start_time = time.time()
         
+        # Get request size
+        request_size = int(request.headers.get('content-length', 0))
+        
         # Log incoming request
         if self.log_requests:
             self.logger.info(
@@ -42,7 +46,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     'client_ip': request.client.host if request.client else None,
                     'user_agent': request.headers.get('user-agent'),
                     'content_type': request.headers.get('content-type'),
-                    'request_size': request.headers.get('content-length')
+                    'request_size': request_size
                 }
             )
         
@@ -62,10 +66,29 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     'error': str(e)
                 }
             )
+            
+            # Record error metrics
+            endpoint = self._normalize_endpoint(request.url.path)
+            metrics.record_http_request(
+                method=request.method,
+                endpoint=endpoint,
+                status=500,  # Internal server error
+                duration=processing_time / 1000,
+                request_size=request_size,
+                response_size=0
+            )
+            
             raise
         
         # Calculate processing time
         processing_time = (time.time() - start_time) * 1000
+        
+        # Get response size
+        response_size = 0
+        if hasattr(response, 'body'):
+            response_size = len(response.body)
+        elif 'content-length' in response.headers:
+            response_size = int(response.headers['content-length'])
         
         # Add request ID to response headers
         response.headers["X-Request-ID"] = request_id
@@ -81,7 +104,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                     'path': request.url.path,
                     'status_code': response.status_code,
                     'processing_time_ms': processing_time,
-                    'response_size': response.headers.get('content-length')
+                    'response_size': response_size
                 }
             )
         
@@ -92,7 +115,36 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             'ms'
         )
         
+        # Record metrics
+        endpoint = self._normalize_endpoint(request.url.path)
+        metrics.record_http_request(
+            method=request.method,
+            endpoint=endpoint,
+            status=response.status_code,
+            duration=processing_time / 1000,  # Convert to seconds
+            request_size=request_size,
+            response_size=response_size
+        )
+        
         return response
+    
+    def _normalize_endpoint(self, path: str) -> str:
+        """Normalize endpoint path for metrics."""
+        # Remove version prefixes for consistency
+        if path.startswith('/v1.0/') or path.startswith('/v1.1/'):
+            path = path[5:]  # Remove version prefix
+        
+        # Normalize parameterized endpoints
+        if '/upload/' in path and path.count('/') > 2:
+            return '/upload/{id}'
+        elif '/actions/' in path and path.count('/') > 2:
+            return '/actions/{id}'
+        elif '/kpis/' in path and path.count('/') > 2:
+            return '/kpis/{id}'
+        elif '/risk/' in path and path.count('/') > 2:
+            return '/risk/{id}'
+        
+        return path
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):

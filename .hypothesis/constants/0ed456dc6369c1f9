@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\api\v1\router.py
+# hypothesis_version: 6.148.8
+
+[400, 401, 403, 404, 422, 500, '/', '/docs', '/redoc', '/v1.0', '/v1.0/actions', '/v1.0/auth', '/v1.0/jobs', '/v1.0/kpis', '/v1.0/risk', '/v1.0/upload', '1.0', 'API v1.0 information', 'Bad Request', 'Forbidden', 'Not Found', 'Unauthorized', 'Validation Error', 'actions', 'active', 'authentication', 'description', 'documentation', 'endpoints', 'file_upload', 'jobs', 'kpis', 'message', 'redoc', 'risk_analysis', 'status', 'swagger', 'v1.0', 'version']

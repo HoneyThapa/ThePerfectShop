@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\exceptions.py
+# hypothesis_version: 6.148.8
+
+['AUTHENTICATION_ERROR', 'AUTHORIZATION_ERROR', 'Access denied', 'BUSINESS_LOGIC_ERROR', 'Bearer', 'DATABASE_ERROR', 'INTERNAL_ERROR', 'RATE_LIMIT_ERROR', 'Rate limit exceeded', 'Retry-After', 'VALIDATION_ERROR', 'WWW-Authenticate', 'details', 'error_code', 'field_errors', 'message', 'operation']

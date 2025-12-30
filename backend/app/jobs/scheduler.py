@@ -97,10 +97,14 @@ class JobScheduler:
         """Create job execution tracking table if it doesn't exist."""
         try:
             from app.db.models import Base
+            # Test database connection first with a short timeout
+            with engine.connect() as conn:
+                conn.execute("SELECT 1")
             Base.metadata.create_all(bind=engine)
             logger.info("Job execution tracking table initialized")
         except Exception as e:
-            logger.error(f"Failed to create job tracking table: {e}")
+            logger.warning(f"Database not available for job tracking table creation: {e}")
+            logger.info("Job scheduler will continue without database tracking")
     
     def _setup_default_jobs(self):
         """Set up default scheduled jobs for the system."""

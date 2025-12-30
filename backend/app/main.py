@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.api.routes_upload import router as upload_router
 from app.api.routes_risk import router as risk_router
 from app.api.routes_actions import router as actions_router
@@ -13,14 +14,16 @@ from app.versioning import create_version_info_router
 from app.error_handlers import setup_error_handlers
 from app.logging_config import setup_logging
 from app.middleware import RequestLoggingMiddleware, SecurityMiddleware, RateLimitMiddleware
+from app.monitoring import setup_metrics_endpoint, metrics, cleanup_metrics
+from app.api.routes_monitoring import router as monitoring_router
 
 # Set up logging first
 logger = setup_logging()
 
 app = FastAPI(
-    title="ExpiryShield Backend API",
+    title="ThePerfectShop Backend API",
     description="""
-    ## ExpiryShield Backend API
+    ## ThePerfectShop Backend API
     
     A comprehensive REST API for inventory expiry prevention system that helps businesses:
     - Upload and validate sales, inventory, and purchase data
@@ -48,12 +51,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     contact={
-        "name": "ExpiryShield Development Team",
-        "email": "dev@expiryshield.com",
+        "name": "ThePerfectShop Development Team",
+        "email": "dev@theperfectshop.com",
     },
     license_info={
         "name": "Proprietary",
-        "url": "https://expiryshield.com/license",
+        "url": "https://theperfectshop.com/license",
     },
     servers=[
         {
@@ -61,7 +64,7 @@ app = FastAPI(
             "description": "Development server"
         },
         {
-            "url": "https://api.expiryshield.com",
+            "url": "https://api.theperfectshop.com",
             "description": "Production server"
         }
     ],
@@ -112,6 +115,9 @@ app = FastAPI(
 # Set up error handlers
 setup_error_handlers(app)
 
+# Set up metrics endpoint
+setup_metrics_endpoint(app)
+
 # Add middleware (order matters - last added is executed first)
 app.add_middleware(RequestLoggingMiddleware, log_requests=True, log_responses=False)
 app.add_middleware(SecurityMiddleware, enable_security_headers=True)
@@ -140,6 +146,7 @@ app.include_router(actions_router)
 app.include_router(kpis_router)
 app.include_router(jobs_router)
 app.include_router(bulk_router)
+app.include_router(monitoring_router)
 
 
 @app.get("/")
@@ -151,7 +158,7 @@ async def root():
     Use this endpoint to discover API capabilities and version options.
     """
     return {
-        "message": "ExpiryShield Backend API",
+        "message": "ThePerfectShop Backend API",
         "version": "1.0.0",
         "status": "healthy",
         "api_versions": {
@@ -181,16 +188,136 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring."""
-    return {
+    """
+    Comprehensive health check endpoint for monitoring.
+    
+    Checks the health of the application, database, and external dependencies.
+    Used by Docker health checks, load balancers, and monitoring systems.
+    """
+    from datetime import datetime
+    import os
+    
+    health_status = {
         "status": "healthy",
-        "timestamp": "2025-12-30T00:00:00Z",
-        "version": "1.0.0"
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "version": "1.0.0",
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "checks": {}
     }
+    
+    # Skip database check in test environment or when DB is unavailable
+    if os.getenv("SKIP_DB_HEALTH_CHECK", "false").lower() == "true":
+        health_status["checks"]["database"] = {
+            "status": "skipped",
+            "message": "Database health check disabled"
+        }
+    else:
+        # Check database connectivity with fast timeout
+        try:
+            import time
+            from app.db.session import get_db
+            
+            start_time = time.time()
+            db = next(get_db())
+            # Simple query to test database
+            result = db.execute(text("SELECT 1")).fetchone()
+            response_time = (time.time() - start_time) * 1000
+            
+            health_status["checks"]["database"] = {
+                "status": "healthy" if result else "unhealthy",
+                "response_time_ms": round(response_time, 2)
+            }
+            db.close()
+        except Exception as e:
+            health_status["checks"]["database"] = {
+            "status": "unhealthy",
+            "error": str(e)
+        }
+        health_status["status"] = "degraded"
+    
+    # Check Redis connectivity (if configured)
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        try:
+            import redis
+            r = redis.from_url(redis_url)
+            r.ping()
+            health_status["checks"]["redis"] = {"status": "healthy"}
+        except Exception as e:
+            health_status["checks"]["redis"] = {
+                "status": "unhealthy",
+                "error": str(e)
+            }
+            health_status["status"] = "degraded"
+    
+    # Check disk space for uploads
+    upload_dir = os.getenv("UPLOAD_DIR", "uploads")
+    try:
+        import shutil
+        if os.path.exists(upload_dir):
+            total, used, free = shutil.disk_usage(upload_dir)
+            free_percent = (free / total) * 100
+            health_status["checks"]["disk_space"] = {
+                "status": "healthy" if free_percent > 10 else "warning",
+                "free_percent": round(free_percent, 2),
+                "free_gb": round(free / (1024**3), 2)
+            }
+    except Exception as e:
+        health_status["checks"]["disk_space"] = {
+            "status": "unknown",
+            "error": str(e)
+        }
+    
+    # Check scheduled jobs status (if enabled)
+    if os.getenv("ENABLE_SCHEDULED_JOBS", "true").lower() == "true":
+        try:
+            from app.jobs.scheduler import scheduler
+            health_status["checks"]["scheduler"] = {
+                "status": "healthy" if scheduler.running else "stopped",
+                "job_count": len(scheduler.get_jobs())
+            }
+        except Exception as e:
+            health_status["checks"]["scheduler"] = {
+                "status": "unhealthy",
+                "error": str(e)
+            }
+    
+    return health_status
+
+
+@app.get("/health/ready")
+async def readiness_check():
+    """
+    Readiness check endpoint for Kubernetes deployments.
+    
+    Returns 200 when the application is ready to serve traffic.
+    """
+    # Check critical dependencies
+    from app.db.session import get_db
+    
+    try:
+        db = next(get_db())
+        db.execute(text("SELECT 1")).fetchone()
+        db.close()
+        return {"status": "ready", "timestamp": datetime.utcnow().isoformat() + "Z"}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail=f"Service not ready: {str(e)}")
+
+
+@app.get("/health/live")
+async def liveness_check():
+    """
+    Liveness check endpoint for Kubernetes deployments.
+    
+    Returns 200 when the application is alive (not deadlocked).
+    """
+    from datetime import datetime
+    return {"status": "alive", "timestamp": datetime.utcnow().isoformat() + "Z"}
 
 
 # Log startup
-logger.info("ExpiryShield Backend API started successfully")
+logger.info("ThePerfectShop Backend API started successfully")
 
 
 @app.on_event("startup")
@@ -205,3 +332,18 @@ async def startup_event():
     # Job tracking table is created in scheduler.__init__()
     
     logger.info("Job scheduler initialized successfully")
+    
+    # Set initial health status
+    metrics.set_health_status('healthy')
+    logger.info("Monitoring and metrics initialized")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on application shutdown."""
+    logger.info("Shutting down application...")
+    
+    # Cleanup metrics collection
+    cleanup_metrics()
+    
+    logger.info("Application shutdown complete")

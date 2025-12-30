@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\services\validation.py
+# hypothesis_version: 6.148.8
+
+['expiry_date', 'missing', 'on_hand_qty']

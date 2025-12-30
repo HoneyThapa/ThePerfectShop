@@ -1,0 +1,4 @@
+# file: E:\AWS\ThePerfectShop\backend\app\performance.py
+# hypothesis_version: 6.148.8
+
+[0.1, -1000, -100, 100, 1000, 1024, 2000, 'PerformanceMetric', 'PerformanceMonitor', 'alert_count', 'alerts', 'average_5min', 'bytes', 'connections', 'count', 'cpu_percent', 'cpu_usage_percent', 'db_error_count', 'db_query_time_ms', 'degraded', 'error_rate_percent', 'error_type', 'file_type', 'healthy', 'memory_rss_mb', 'memory_usage_mb', 'memory_vms_mb', 'metric_name', 'metrics', 'metrics_collected', 'monitor_file_upload', 'monitor_performance', 'ms', 'open_files', 'operation', 'performance_monitor', 'recent_alerts', 'response_time_ms', 'status', 'summary', 'system', 'system_health', 'table', 'tags', 'threads', 'threshold', 'timestamp', 'unit', 'upload_error_count', 'value']
